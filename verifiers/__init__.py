@@ -1,4 +1,3 @@
-# verifiers/__init__.py
 from .envs.base import BaseEnv
 from .envs.dummy_env import DummyEnv
 from .envs.code_env import CodeEnv
