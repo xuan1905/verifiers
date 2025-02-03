@@ -34,7 +34,8 @@ class DoubleCheckEnv(BaseEnv):
                  llm: LLM,
                  sampling_params: SamplingParams
         ) -> list[RequestOutput]:
-
-        tasks = [self.run(prompt, llm, sampling_params) for prompt in prompts]
-        outputs = await asyncio.gather(*tasks)
-        return outputs
+        async def a_generate():
+            tasks = [self.run(prompt, llm, sampling_params) for prompt in prompts]
+            outputs = await asyncio.gather(*tasks)
+            return outputs
+        return asyncio.run(a_generate())
