@@ -24,7 +24,7 @@ class DoubleCheckEnv(BaseEnv):
         prompt.append({'role': 'user', 'content': 'Are you sure?'})
 
         output = llm.chat(prompt, sampling_params=sampling_params, use_tqdm=False)[0] # type: ignore
-         
+
         # modify so all responses treated as output
         combined_output_text = output.outputs[0].text.removeprefix(input_text) + output.outputs[0].text
         combined_output_ids = list(output.outputs[0].token_ids)[len(input_ids):] + list(output.outputs[0].token_ids)
@@ -32,6 +32,7 @@ class DoubleCheckEnv(BaseEnv):
         output.prompt_token_ids = input_ids
         output.outputs[0].text = combined_output_text
         output.outputs[0].token_ids = combined_output_ids
+        print(output)
         return output
 
     def generate(self,
