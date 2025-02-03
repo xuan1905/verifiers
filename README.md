@@ -1,4 +1,4 @@
-# Verifiers for Reinforcement Learning with LLMs
+# Verifiers: Reinforcement Learning with LLMs in Verifiable Environments
 
 This repository contains a set of tools for reinforcement learning with LLMs in verifiable environments.
 
@@ -37,3 +37,17 @@ trainer = GRPOTrainer(
 trainer.train()
 ```
 See `examples/doublecheck.py` for a complete example.
+
+
+## Citation
+
+If you use this code in your research, please cite:
+
+```bibtex
+@article{williamson2025verifiers,
+  title={Verifiers: Reinforcement Learning with LLMs in Verifiable Environments},
+  author={Brown, Will},
+  journal={arXiv preprint arXiv:2502.01234},
+  year={2025}
+}
+```

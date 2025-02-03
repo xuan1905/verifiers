@@ -7,9 +7,8 @@ version = "0.1.0"
 description = "Verifiers for reinforcement learning with LLMs"
 requires-python = ">=3.11"
 dependencies = [
-    "vllm",
-    "torch",
     "transformers",
     "datasets",
-    "trl"
+    "trl",
+    "vllm"
 ]
