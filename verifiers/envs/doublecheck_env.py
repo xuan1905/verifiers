@@ -32,7 +32,6 @@ class DoubleCheckEnv(BaseEnv):
         output.prompt_token_ids = input_ids
         output.outputs[0].text = combined_output_text
         output.outputs[0].token_ids = combined_output_ids
-        print(output)
         return output
 
     def generate(self,
