@@ -8,7 +8,6 @@ class DoubleCheckEnv(BaseEnv):
 
     def get_rubric(self) -> List[Callable[..., list[float]]]:
         return []
-        pass
 
     def generate(self,
                  prompts: List[List[Dict[str, Any]]],
