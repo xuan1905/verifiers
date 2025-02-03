@@ -26,8 +26,8 @@ class DoubleCheckEnv(BaseEnv):
         output = llm.chat(prompt, sampling_params=sampling_params, use_tqdm=False)[0] # type: ignore
 
         # modify so all responses treated as output
-        combined_output_text = output.outputs[0].text.removeprefix(input_text) + output.outputs[0].text
-        combined_output_ids = list(output.outputs[0].token_ids)[len(input_ids):] + list(output.outputs[0].token_ids)
+        combined_output_text = output.prompt.removeprefix(input_text) + output.outputs[0].text
+        combined_output_ids = list(output.prompt_token_ids)[len(input_ids):] + list(output.outputs[0].token_ids)
         output.prompt = input_text
         output.prompt_token_ids = input_ids
         output.outputs[0].text = combined_output_text
