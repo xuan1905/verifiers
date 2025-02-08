@@ -1,16 +1,17 @@
 from abc import ABC, abstractmethod
 import asyncio
 from typing import Any, Callable, Dict, List, Sequence
-from vllm import LLM, SamplingParams, RequestOutput
+import uuid 
 
+from vllm import AsyncLLMEngine, SamplingParams, RequestOutput
 
 async def async_llm_chat(messages: List[Dict[str, Any]],
-                         llm: LLM,
+                         llm: AsyncLLMEngine,
                          sampling_params: SamplingParams) -> RequestOutput:
-    outputs = await asyncio.to_thread(
-        lambda: llm.chat(messages, sampling_params=sampling_params, use_tqdm=False)
-    )
-    return outputs[0]
+    text = llm.tokenizer.apply_chat_template(messages, tokenize=False)
+    request_id = str(uuid.uuid4())
+    async for output in llm.generate(text, sampling_params=sampling_params, request_id=request_id):
+        return output
 
 class BaseEnv(ABC):
 
