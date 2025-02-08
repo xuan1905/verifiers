@@ -15,7 +15,7 @@ class DoubleCheckEnv(BaseEnv):
                  llm: LLM,
                  sampling_params: SamplingParams) -> Tuple[Dict[str, Any], RequestOutput]:
         state["messages"].append({'role': 'user', 'content': 'Are you sure?'})
-        output = await async_llm_chat(state["messages"], llm, sampling_params=sampling_params, use_tqdm=False)[0] # type: ignore
+        output = await async_llm_chat(state["messages"], llm, sampling_params=sampling_params)[0] # type: ignore
         state["messages"].append({'role': 'assistant', 'content': output.outputs[0].text})
         state["completed"] = True
         return state, output
@@ -26,7 +26,7 @@ class DoubleCheckEnv(BaseEnv):
                   sampling_params: SamplingParams) -> Sequence[int]:
         # first pass
         messages = [m for m in prompt]
-        output = await async_llm_chat(messages, llm, sampling_params=sampling_params, use_tqdm=False)[0] # type: ignore
+        output = await async_llm_chat(messages, llm, sampling_params=sampling_params)[0] # type: ignore
         len_prompt = len(output.prompt_token_ids) if output.prompt_token_ids is not None else 0
         messages.append({'role': 'assistant', 'content': output.outputs[0].text})
         
