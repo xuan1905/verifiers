@@ -1,7 +1,9 @@
-import asyncio
-import copy
 from typing import List, Callable, Dict, Any, Sequence, Tuple
-from vllm import AsyncLLMEngine, SamplingParams, RequestOutput
+
+from verifiers.envs.base import BaseEnv
+
+from vllm import LLM, SamplingParams, RequestOutput
+
 
 class DoubleCheckEnv(BaseEnv):
     def __init__(self):
@@ -10,23 +12,23 @@ class DoubleCheckEnv(BaseEnv):
     def get_rubric(self) -> List[Callable[..., list[float]]]:
         return []
 
-    async def env_step(self,
+    def env_step(self,
                  state: Dict[str, Any],
-                 llm: AsyncLLMEngine,
+                 llm: LLM,
                  sampling_params: SamplingParams) -> Tuple[Dict[str, Any], RequestOutput]:
         state["messages"].append({'role': 'user', 'content': 'Are you sure?'})
-        output = await async_llm_chat(state["messages"], llm, sampling_params=sampling_params) # type: ignore
+        output = llm.chat(state["messages"], sampling_params=sampling_params) # type: ignore
         state["messages"].append({'role': 'assistant', 'content': output.outputs[0].text})
         state["completed"] = True
         return state, output
 
-    async def run(self,
+    def run(self,
                   prompt: List[Dict[str, Any]],
-                  llm: AsyncLLMEngine,
+                  llm: LLM,
                   sampling_params: SamplingParams) -> Sequence[int]:
         # first pass
         messages = [m for m in prompt]
-        output = await async_llm_chat(messages, llm, sampling_params=sampling_params) # type: ignore
+        output = llm.chat(messages, llm, sampling_params=sampling_params) # type: ignore
         len_prompt = len(output.prompt_token_ids) if output.prompt_token_ids is not None else 0
         messages.append({'role': 'assistant', 'content': output.outputs[0].text})
         
@@ -41,7 +43,6 @@ class DoubleCheckEnv(BaseEnv):
         all_ids = list(output.prompt_token_ids) + list(output.outputs[0].token_ids)
         return all_ids[len_prompt:]
 
-    async def generate(self, prompts: List[List[Dict[str, Any]]], llm: AsyncLLMEngine, sampling_params: SamplingParams) -> List[Sequence[int]]:
-        tasks = [self.run(copy.deepcopy(prompt), llm, sampling_params) for prompt in prompts]
-        outputs = await asyncio.gather(*tasks)
+    def generate(self, prompts: List[List[Dict[str, Any]]], llm: LLM, sampling_params: SamplingParams) -> List[Sequence[int]]:
+        outputs = [self.run(prompt, llm, sampling_params) for prompt in prompts]
         return outputs
