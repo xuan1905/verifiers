@@ -1,7 +1,7 @@
 import asyncio
 from typing import List, Callable, Dict, Any, Sequence, Tuple
 from verifiers.envs.base import BaseEnv, async_llm_chat
-from vllm import LLM, SamplingParams, RequestOutput
+from vllm import AsyncLLMEngine, SamplingParams, RequestOutput
 
 class DoubleCheckEnv(BaseEnv):
     def __init__(self):
@@ -12,7 +12,7 @@ class DoubleCheckEnv(BaseEnv):
 
     async def env_step(self,
                  state: Dict[str, Any],
-                 llm: LLM,
+                 llm: AsyncLLMEngine,
                  sampling_params: SamplingParams) -> Tuple[Dict[str, Any], RequestOutput]:
         state["messages"].append({'role': 'user', 'content': 'Are you sure?'})
         output = await async_llm_chat(state["messages"], llm, sampling_params=sampling_params) # type: ignore
@@ -22,7 +22,7 @@ class DoubleCheckEnv(BaseEnv):
 
     async def run(self,
                   prompt: List[Dict[str, Any]],
-                  llm: LLM,
+                  llm: AsyncLLMEngine,
                   sampling_params: SamplingParams) -> Sequence[int]:
         # first pass
         messages = [m for m in prompt]
@@ -41,7 +41,7 @@ class DoubleCheckEnv(BaseEnv):
         all_ids = list(output.prompt_token_ids) + list(output.outputs[0].token_ids)
         return all_ids[len_prompt:]
 
-    def generate(self, prompts: List[List[Dict[str, Any]]], llm: LLM, sampling_params: SamplingParams) -> List[Sequence[int]]:
+    def generate(self, prompts: List[List[Dict[str, Any]]], llm: AsyncLLMEngine, sampling_params: SamplingParams) -> List[Sequence[int]]:
         async def run_all():
             tasks = [self.run(prompt, llm, sampling_params) for prompt in prompts]
             outputs = await asyncio.gather(*tasks)
