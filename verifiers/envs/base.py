@@ -4,8 +4,8 @@ from typing import Any, Callable, Dict, List, Sequence
 from vllm import LLM, SamplingParams, RequestOutput
 
 
-async def async_llm_chat(llm: LLM,
-                         messages: List[Dict[str, Any]],
+async def async_llm_chat(messages: List[Dict[str, Any]],
+                         llm: LLM,
                          sampling_params: SamplingParams) -> RequestOutput:
     outputs = await asyncio.to_thread(
         lambda: llm.chat(messages, sampling_params=sampling_params, use_tqdm=False)
