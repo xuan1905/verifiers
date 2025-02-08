@@ -1,7 +1,7 @@
 import asyncio
-from typing import List, Callable, Dict, Any, Sequence
+from typing import List, Callable, Dict, Any, Sequence, Tuple
 from verifiers.envs.base import BaseEnv
-from vllm import LLM, SamplingParams
+from vllm import LLM, SamplingParams, RequestOutput
 
 
 class DoubleCheckEnv(BaseEnv):
@@ -12,6 +12,16 @@ class DoubleCheckEnv(BaseEnv):
     def get_rubric(self) -> List[Callable[..., list[float]]]:
         return []
 
+    def env_step(self,
+                 state: Dict[str, Any],
+                 llm: LLM,
+                 sampling_params: SamplingParams) -> Tuple[Dict[str, Any], RequestOutput]:
+        state["messages"].append({'role': 'user', 'content': 'Are you sure?'})
+        output = llm.chat(state["messages"], sampling_params=sampling_params, use_tqdm=False)[0] # type: ignore
+        state["messages"].append({'role': 'assistant', 'content': output.outputs[0].text})
+        state["completed"] = True
+        return state, output
+
     async def run(self,
                   prompt: List[Dict[str, Any]],
                   llm: LLM,
@@ -20,11 +30,14 @@ class DoubleCheckEnv(BaseEnv):
         messages = [m for m in prompt]
         output = llm.chat(messages, sampling_params=sampling_params, use_tqdm=False)[0] # type: ignore
         len_prompt = len(output.prompt_token_ids) if output.prompt_token_ids is not None else 0
-
-        # double-check step
         messages.append({'role': 'assistant', 'content': output.outputs[0].text})
-        messages.append({'role': 'user', 'content': 'Are you sure?'})
-        output = self.llm.chat(messages, sampling_params=self.sampling_params, use_tqdm=False)[0] # type: ignore
+        
+        # initialize env state
+        state = {"completed": False, "messages": messages}
+
+        # env step -- main loop
+        while not state["completed"]:
+            state, output = self.env_step(state, llm, sampling_params)
 
         # combine outputs
         all_ids = list(output.prompt_token_ids) + list(output.outputs[0].token_ids)
