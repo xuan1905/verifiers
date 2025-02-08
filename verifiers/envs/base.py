@@ -7,9 +7,10 @@ from vllm import LLM, SamplingParams, RequestOutput
 async def async_llm_chat(llm: LLM,
                          messages: List[Dict[str, Any]],
                          sampling_params: SamplingParams) -> RequestOutput:
-    return await asyncio.to_thread(
+    outputs = await asyncio.to_thread(
         lambda: llm.chat(messages, sampling_params=sampling_params, use_tqdm=False)
     )
+    return outputs[0]
 
 class BaseEnv(ABC):
 
