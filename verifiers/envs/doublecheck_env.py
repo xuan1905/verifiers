@@ -37,7 +37,7 @@ class DoubleCheckEnv(BaseEnv):
 
         # env step -- main loop
         while not state["completed"]:
-            state, output = await self.env_step(state, llm, sampling_params)
+            state, output = self.env_step(state, llm, sampling_params)
 
         # combine outputs
         all_ids = list(output.prompt_token_ids) + list(output.outputs[0].token_ids)
