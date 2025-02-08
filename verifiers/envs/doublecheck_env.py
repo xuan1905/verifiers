@@ -1,23 +1,21 @@
 import asyncio
 from typing import List, Callable, Dict, Any, Sequence, Tuple
-from verifiers.envs.base import BaseEnv
+from verifiers.envs.base import BaseEnv, async_llm_chat
 from vllm import LLM, SamplingParams, RequestOutput
-
 
 class DoubleCheckEnv(BaseEnv):
     def __init__(self):
         super().__init__()
 
-
     def get_rubric(self) -> List[Callable[..., list[float]]]:
         return []
 
-    def env_step(self,
+    async def env_step(self,
                  state: Dict[str, Any],
                  llm: LLM,
                  sampling_params: SamplingParams) -> Tuple[Dict[str, Any], RequestOutput]:
         state["messages"].append({'role': 'user', 'content': 'Are you sure?'})
-        output = llm.chat(state["messages"], sampling_params=sampling_params, use_tqdm=False)[0] # type: ignore
+        output = await async_llm_chat(state["messages"], llm, sampling_params=sampling_params, use_tqdm=False)[0] # type: ignore
         state["messages"].append({'role': 'assistant', 'content': output.outputs[0].text})
         state["completed"] = True
         return state, output
@@ -28,7 +26,7 @@ class DoubleCheckEnv(BaseEnv):
                   sampling_params: SamplingParams) -> Sequence[int]:
         # first pass
         messages = [m for m in prompt]
-        output = llm.chat(messages, sampling_params=sampling_params, use_tqdm=False)[0] # type: ignore
+        output = await async_llm_chat(messages, llm, sampling_params=sampling_params, use_tqdm=False)[0] # type: ignore
         len_prompt = len(output.prompt_token_ids) if output.prompt_token_ids is not None else 0
         messages.append({'role': 'assistant', 'content': output.outputs[0].text})
         
@@ -37,7 +35,7 @@ class DoubleCheckEnv(BaseEnv):
 
         # env step -- main loop
         while not state["completed"]:
-            state, output = self.env_step(state, llm, sampling_params)
+            state, output = await self.env_step(state, llm, sampling_params)
 
         # combine outputs
         all_ids = list(output.prompt_token_ids) + list(output.outputs[0].token_ids)
