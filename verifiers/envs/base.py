@@ -8,10 +8,12 @@ from vllm import AsyncLLMEngine, SamplingParams, RequestOutput
 async def async_llm_chat(messages: List[Dict[str, Any]],
                          llm: AsyncLLMEngine,
                          sampling_params: SamplingParams) -> RequestOutput:
-    text = llm.tokenizer.apply_chat_template(messages, tokenize=False)
+    tokenizer = await llm.get_tokenizer()
+    text = tokenizer.apply_chat_template(messages, tokenize=False)
     request_id = str(uuid.uuid4())
-    async for output in llm.generate(text, sampling_params=sampling_params, request_id=request_id):
-        return output
+    gen = llm.generate(text, sampling_params=sampling_params, request_id=request_id)
+    return await anext(gen)
+
 
 class BaseEnv(ABC):
 
