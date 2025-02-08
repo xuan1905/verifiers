@@ -4,15 +4,14 @@ from vllm import LLM, SamplingParams, RequestOutput
 
 class DummyEnv(BaseEnv):
     def __init__(self):
-        pass
+        super().__init__()
 
     def get_rubric(self) -> List[Callable[..., list[float]]]:
         return []
 
-    def generate(self,
-                 prompts: List[List[Dict[str, Any]]],
-                 llm: LLM,
-                 sampling_params: SamplingParams
-        ) -> list[RequestOutput]:
-        outputs = llm.chat(prompts, sampling_params=sampling_params, use_tqdm=False) # type: ignore
+    def generate(self, prompts: List[List[Dict[str, Any]]]) -> list[RequestOutput]:
+        outputs = self.llm.chat(prompts, sampling_params=self.sampling_params, use_tqdm=False) # type: ignore
         return outputs
+    
+
+    

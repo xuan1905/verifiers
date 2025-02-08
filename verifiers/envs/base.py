@@ -5,16 +5,14 @@ from vllm import LLM, SamplingParams, RequestOutput
 class BaseEnv(ABC):
 
     def __init__(self):
-        pass
+        self.llm = None
+        self.processing_class = None
+        self.sampling_params = None
 
     @abstractmethod
     def get_rubric(self) -> List[Callable[..., list[float]]]:
         pass
     
     @abstractmethod
-    def generate(self,
-                 prompts: List[List[Dict[str, Any]]],
-                 llm: LLM,
-                 sampling_params: SamplingParams
-        ) -> list[RequestOutput]:
+    def generate(self, prompts: List[List[Dict[str, Any]]]) -> list[RequestOutput]:
         pass
