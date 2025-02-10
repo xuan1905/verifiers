@@ -27,7 +27,7 @@ class MathEnv(SimpleEnv):
         if dataset_name == "gsm8k":
             dataset: Dataset = load_dataset("openai/gsm8k", "main")[split] # type: ignore
             dataset = dataset.map(lambda x: {
-                "prompt": self.format_prompt(x["question"]),
+                "prompt": self.format_prompt(x["question"], fewshot_prob=0.5),
                 "answer": extract_hash_answer(x["answer"])
             })
             return dataset

@@ -17,11 +17,11 @@ class SimpleEnv(BaseEnv):
         self.system_prompt = system_prompt
         self.few_shot = few_shot
 
-    def format_prompt(self, prompt: str, fewshot_frac: float = 0.5) -> List[Dict[str, str]]:
+    def format_prompt(self, prompt: str, fewshot_prob: float = 0.5) -> List[Dict[str, str]]:
         messages = []
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})
-        if self.few_shot and random.random() < fewshot_frac:
+        if self.few_shot and random.random() < fewshot_prob:
             messages.extend(self.few_shot)
         messages.append({"role": "user", "content": prompt})
         return messages
