@@ -11,6 +11,21 @@ MATH_FEW_SHOT = [
     ]
 ]
 
+DOUBLECHECK_FEW_SHOT = [
+    [
+        {'role': 'user', 'content': 'What is the largest single-digit prime number?'},
+        {'role': 'assistant', 'content': math_parser.format(
+            reasoning='The largest single-digit prime number is 7.',
+            answer='7'
+        )},
+        {'role': 'user', 'content': 'Are you sure?'},
+        {'role': 'assistant', 'content': math_parser.format(
+            reasoning='The only larger single-digit numbers are 8 and 9, which are not prime. So yes, the answer is 7.',
+            answer='7'
+        )}
+    ]
+]
+
 code_parser = XMLParser(fields=["reasoning", ("code", "answer")])
 output_parser = XMLParser(fields=["output"])
 MATH_CODE_FEW_SHOT = [
