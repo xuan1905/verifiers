@@ -3,14 +3,14 @@ from typing import List, Dict, Any, Sequence, Tuple, Union
 from vllm import LLM, SamplingParams, RequestOutput # type: ignore
 
 from verifiers.envs.math_env import MathEnv
-from verifiers.prompts import SIMPLE_PROMPT, MATH_FEW_SHOT
+from verifiers.prompts import SIMPLE_PROMPT, DOUBLECHECK_FEW_SHOT
 
 
 class DoubleCheckEnv(MathEnv):
     def __init__(self, 
                  dataset: str = "gsm8k",
                  system_prompt: str = SIMPLE_PROMPT,
-                 few_shot: List[Dict[str, str]] = MATH_FEW_SHOT[0],
+                 few_shot: List[Dict[str, str]] = DOUBLECHECK_FEW_SHOT[0],
                  fields: List[str | Tuple[str, ...]] = ["reasoning", "answer"],
                  **kwargs):
         super().__init__(dataset=dataset, system_prompt=system_prompt, few_shot=few_shot, fields=fields, **kwargs)
