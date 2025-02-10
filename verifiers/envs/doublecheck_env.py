@@ -1,13 +1,16 @@
-from typing import List, Callable, Dict, Any, Sequence, Tuple
+from typing import List, Dict, Any, Sequence, Tuple, Union
+
+from trl.trainer.grpo_trainer import RewardFunc
+from vllm import LLM, SamplingParams, RequestOutput # type: ignore
+
 from verifiers.envs.base import BaseEnv
-from vllm import LLM, SamplingParams, RequestOutput
 
 
 class DoubleCheckEnv(BaseEnv):
     def __init__(self):
         super().__init__()
 
-    def get_rubric(self) -> List[Callable[..., list[float]]]:
+    def get_rubric(self, **kwargs: Any) -> List[RewardFunc]:
         return []
 
     def step(self,
@@ -27,7 +30,12 @@ class DoubleCheckEnv(BaseEnv):
             state["completed"] = True
         return states, responses
 
-    def generate(self, prompts: List[List[Dict[str, Any]]], llm: LLM, sampling_params: SamplingParams) -> List[Sequence[int]]:
+    def generate(self,
+                 prompts: List[List[Dict[str, Any]]],
+                 llm: LLM,
+                 sampling_params: SamplingParams,
+                 output_type: str = "ids",
+                 **kwargs: Any) -> Union[List[Sequence[int]], List[str]]:
         all_completed = False
         states = [{"messages": m, "completed": False, "prompt_tokens": -1} for m in prompts]
         responses = []

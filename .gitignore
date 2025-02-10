@@ -1,6 +1,32 @@
+# env 
 .venv/
-dist/
-*.egg-info/
+venv/
+env/
+.env
+.env.local
 
+# artifacts
+dist/
+build/
+*.egg-info/
 */__pycache__/
+*.pyo
+*.pyd
+*.pyc
+
+# outputs
 wandb/
+outputs/
+logs/
+
+# development
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+
+
+# WIPs
+verifiers/envs/search_env.py
+verifiers/envs/tool_env.py

@@ -20,34 +20,53 @@ pip install verifiers
 ## Usage
 
 ```python
-from trl import GRPOTrainer, GRPOConfig
-from verifiers import DoubleCheckEnv
+import verifiers as vf
+from trl import GRPOTrainer
 
-model_name = "meta-llama/Llama-3.2-1B-Instruct"
-training_args = GRPOConfig(use_vllm=True)
+model_name = "Qwen/Qwen2.5-1.5B-Instruct"
+model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
-vf_env = DoubleCheckEnv()
+vf_env = vf.DoubleCheckEnv()
 trainer = GRPOTrainer(
     model=model_name,
-    reward_funcs=vf_env.get_rubric(),
+    processing_class=tokenizer,
     env=vf_env,
-    args=training_args,
-    train_dataset=dataset,
+    reward_funcs=vf_env.get_rubric(),
+    args=vf.get_default_grpo_config(run_name="doublecheck", num_gpus=1),
+    train_dataset=vf_env.get_dataset(),
 )
 trainer.train()
+vf_env.eval(batch_size=32)
 ```
 See `examples/doublecheck.py` for a complete example.
 
+
+## Features
+- [X] Environments: `SimpleEnv`, `MathEnv`, `DoubleCheckEnv`, `CodeEnv`
+- [X] Dataset formatting
+- [X] Rubrics for math correctness + response formatting
+- [X] Defaults for GRPO, model, tokenizer, etc.
+
+## Roadmap
+
+There are a number of features we're planning to support in the near future:
+- [ ] Multi-step code execution in `CodeEnv` 
+- [ ] TextArena games
+- [ ] LLM judges
+- [ ] A range of other environments (suggestions welcome!)
+- [ ] PPO
+- [ ] Potential interoperability with other RL libraries (veRL, OpenRLHF, open-instruct, oat, etc.)
+
+Community contributions are appreciated and encouraged!
 
 ## Citation
 
 If you use this code in your research, please cite:
 
 ```bibtex
-@article{williamson2025verifiers,
+@article{brown2025verifiers,
   title={Verifiers: Reinforcement Learning with LLMs in Verifiable Environments},
-  author={Brown, Will},
-  journal={arXiv preprint arXiv:2502.01234},
+  author={Brown, William},
   year={2025}
 }
 ```

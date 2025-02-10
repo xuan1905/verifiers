@@ -7,8 +7,9 @@ version = "0.1.0"
 description = "Verifiers for reinforcement learning with LLMs"
 requires-python = ">=3.11"
 dependencies = [
-    "transformers",
     "datasets",
-    "trl",
-    "vllm"
+    "liger-kernel",
+    "transformers",
+    "vllm",
+    "trl @ git+https://github.com/willccbb/trl.git@grpo-envs",
 ]
