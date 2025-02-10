@@ -44,4 +44,4 @@ class DoubleCheckEnv(BaseEnv):
             all_completed = all(state["completed"] for state in states)
         all_ids = [list(r.prompt_token_ids) + list(r.outputs[0].token_ids) for r in responses]
         completion_ids = [a[states[idx]["prompt_tokens"]:] for idx, a in enumerate(all_ids)]
-        return completion_ids
+        return completion_ids # type: ignore
