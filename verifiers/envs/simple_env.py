@@ -36,13 +36,15 @@ class SimpleEnv(BaseEnv):
                  llm: LLM,
                  sampling_params: SamplingParams,
                  output_type: str = "ids",
-                 **kwargs: Any) -> Union[List[Sequence[int]], List[str]]:
+                 **kwargs: Any) -> Union[List[Sequence[int]], List[str], List[List[Dict[str, Any]]]]:
         completions = llm.chat(prompts, sampling_params=sampling_params, use_tqdm=False) # type: ignore
         self.logger.info(f"First completion: {completions[0].outputs[0].text}")
         if output_type == "ids":
             return [completion.outputs[0].token_ids for completion in completions]
         elif output_type == "text":
             return [completion.outputs[0].text for completion in completions]
+        elif output_type == "messages":
+            return [[{"role": "assistant", "content": c.outputs[0].text}] for c in completions]
         else:
             raise ValueError(f"Invalid output type: {output_type}")
 

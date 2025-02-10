@@ -42,5 +42,5 @@ class BaseEnv(ABC):
                  llm: LLM,
                  sampling_params: SamplingParams,
                  output_type: str = "ids",
-                 **kwargs: Any) -> Union[List[Sequence[int]], List[str]]:
+                 **kwargs: Any) -> Union[List[Sequence[int]], List[str], List[List[Dict[str, Any]]]]:
         pass

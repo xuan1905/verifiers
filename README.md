@@ -6,7 +6,10 @@ For now, it supports the TRL implementation of the GRPO algorithm via a [fork](g
 
 ## Installation
 
-PyPI [coming soon](https://pypi.org/project/verifiers/) once a couple more features are added, just clone it for now and run `(uv) pip install .` if you want to try it out.
+PyPI [coming soon](https://pypi.org/project/verifiers/) once a couple more features are added, just clone it for now and run:
+```
+(uv) pip install -e .
+```
 
 ## Usage
 
@@ -32,8 +35,8 @@ vf_env.eval(batch_size=32)
 See `examples/doublecheck.py` for a complete example.
 
 
-## Features
-- [X] Environments: `SimpleEnv`, `MathEnv`, `DoubleCheckEnv`, `CodeEnv`
+## Featureson)
+- [X] Environments: `SimpleEnv`, `MathEnv`, `DoubleCheckEnv`
 - [X] Dataset formatting
 - [X] Rubrics for math correctness + response formatting
 - [X] Defaults for GRPO, model, tokenizer, etc.

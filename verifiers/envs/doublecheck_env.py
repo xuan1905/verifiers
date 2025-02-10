@@ -37,13 +37,20 @@ class DoubleCheckEnv(MathEnv):
                  llm: LLM,
                  sampling_params: SamplingParams,
                  output_type: str = "ids",
-                 **kwargs: Any) -> Union[List[Sequence[int]], List[str]]:
+                 **kwargs: Any) -> Union[List[Sequence[int]], List[str], List[List[Dict[str, Any]]]]:
         all_completed = False
-        states = [{"messages": m, "completed": False, "prompt_tokens": -1} for m in prompts]
+        states = [{"messages": m, "completed": False, "prompt_tokens": -1, "prompt_messages": len(m)} for m in prompts]
         responses = []
         while not all_completed:
             states, responses = self.step(states, llm, sampling_params)
             all_completed = all(state["completed"] for state in states)
         all_ids = [list(r.prompt_token_ids) + list(r.outputs[0].token_ids) for r in responses]
         completion_ids = [a[states[idx]["prompt_tokens"]:] for idx, a in enumerate(all_ids)]
-        return completion_ids # type: ignore
+
+        self.logger.info(f"First completion: {str(states[0]['messages'])}")
+        if output_type == "ids":
+            return completion_ids # type: ignore
+        elif output_type == "messages":
+            return [[{"role": "assistant", "content": m.outputs[0].text} for m in s["messages"]] for s in states]
+        else:
+            raise ValueError(f"Invalid output type: {output_type}")
