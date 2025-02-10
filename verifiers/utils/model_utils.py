@@ -17,8 +17,8 @@ def get_model(model_name: str, model_kwargs: Union[Dict[str, Any], None] = None)
         )
     if is_liger_available():
         print("Using Liger kernel")
-        from liger_kernel.transformers import AutoLigerModelForCausalLM # type: ignore
-        return AutoLigerModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+        from liger_kernel.transformers import AutoLigerKernelForCausalLM # type: ignore
+        return AutoLigerKernelForCausalLM.from_pretrained(model_name, **model_kwargs)
     else:
         return AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
     
