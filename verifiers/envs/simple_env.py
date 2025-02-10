@@ -1,3 +1,4 @@
+import random
 from typing import List, Dict, Sequence, Any, Union
 
 from datasets import load_dataset, Dataset
@@ -16,11 +17,11 @@ class SimpleEnv(BaseEnv):
         self.system_prompt = system_prompt
         self.few_shot = few_shot
 
-    def format_prompt(self, prompt: str) -> List[Dict[str, str]]:
+    def format_prompt(self, prompt: str, fewshot_frac: float = 0.5) -> List[Dict[str, str]]:
         messages = []
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})
-        if self.few_shot:
+        if self.few_shot and random.random() < fewshot_frac:
             messages.extend(self.few_shot)
         messages.append({"role": "user", "content": prompt})
         return messages
