@@ -6,16 +6,7 @@ For now, it supports the TRL implementation of the GRPO algorithm via a [fork](g
 
 ## Installation
 
-We recommend installing via `uv`:
-
-```bash
-uv add verifiers
-```
-
-Or, if you're old-school:
-```bash
-pip install verifiers
-```
+PyPI [coming soon](https://pypi.org/project/verifiers/) once a couple more features are added, just clone it for now and run `(uv) pip install .` if you want to try it out.
 
 ## Usage
 
@@ -50,6 +41,7 @@ See `examples/doublecheck.py` for a complete example.
 ## Roadmap
 
 There are a number of features we're planning to support in the near future:
+- [ ] Integrated evals
 - [ ] Multi-step code execution in `CodeEnv` 
 - [ ] TextArena games
 - [ ] LLM judges
