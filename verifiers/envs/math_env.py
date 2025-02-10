@@ -34,7 +34,7 @@ class MathEnv(SimpleEnv):
         elif dataset_name == "math":
             dataset: Dataset = load_dataset("chiayewken/competition_math")[split] # type: ignore
             dataset = dataset.map(lambda x: {
-                "prompt": self.format_prompt(x["question"]),
+                "prompt": self.format_prompt(x["problem"]),
                 "answer": extract_boxed_answer(x["solution"])
             })
             return dataset
