@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Sequence, Union
+import logging
 
 from datasets import Dataset
 from trl.trainer.grpo_trainer import RewardFunc
@@ -15,6 +16,8 @@ class BaseEnv(ABC):
         self.few_shot = few_shot
         for key, value in kwargs.items():
             setattr(self, key, value)
+        
+        self.logger = logging.getLogger(f"verifiers.envs.{self.__class__.__name__}")
 
     def format_prompt(self, prompt: str) -> List[Dict[str, str]]:
         messages = []

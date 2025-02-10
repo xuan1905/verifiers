@@ -4,6 +4,7 @@ venv/
 env/
 .env
 .env.local
+uv.lock
 
 # artifacts
 dist/
@@ -28,5 +29,6 @@ logs/
 
 
 # WIPs
+wip/
 verifiers/envs/search_env.py
 verifiers/envs/tool_env.py

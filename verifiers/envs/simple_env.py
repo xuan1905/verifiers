@@ -38,6 +38,7 @@ class SimpleEnv(BaseEnv):
                  output_type: str = "ids",
                  **kwargs: Any) -> Union[List[Sequence[int]], List[str]]:
         completions = llm.chat(prompts, sampling_params=sampling_params, use_tqdm=False) # type: ignore
+        self.logger.info(f"First completion: {completions[0].outputs[0].text}")
         if output_type == "ids":
             return [completion.outputs[0].token_ids for completion in completions]
         elif output_type == "text":
