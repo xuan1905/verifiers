@@ -15,7 +15,13 @@ class DoubleCheckEnv(MultiStepEnv):
                  system_prompt: str = SIMPLE_PROMPT,
                  few_shot: List[Dict[str, str]] = DOUBLECHECK_FEW_SHOT[0],
                  **kwargs):
-        super().__init__(dataset=dataset, system_prompt=system_prompt, few_shot=few_shot, **kwargs)
+        
+        sampling_args = {
+            "include_stop_str_in_output": True,
+            "skip_special_tokens": False,
+            "spaces_between_special_tokens": False,
+        }
+        super().__init__(dataset=dataset, system_prompt=system_prompt, few_shot=few_shot, sampling_args=sampling_args, **kwargs)
         self.dataset_name = dataset
         self.dataset = preprocess_dataset(
             dataset_name=dataset,
@@ -24,6 +30,7 @@ class DoubleCheckEnv(MultiStepEnv):
             few_shot=few_shot
         )
         self.rubric = MathRubric()
+        self.tokenizer = None
 
     def get_rubric(self, **kwargs: Any) -> List[RewardFunc]:
         return self.rubric.get_reward_funcs()
