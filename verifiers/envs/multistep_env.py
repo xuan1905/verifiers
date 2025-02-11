@@ -58,7 +58,8 @@ class MultiStepEnv(BaseEnv):
                  output_type: str = "ids",
                  **kwargs: Any) -> Union[List[Sequence[int]], List[str], List[List[Dict[str, Any]]]]:
         custom_sp = sampling_params.clone()
-        custom_sp.update(self.sampling_args)
+        for k, v in self.sampling_args.items():
+            setattr(custom_sp, k, v)
 
         # initialize state variables
         all_completed = False
