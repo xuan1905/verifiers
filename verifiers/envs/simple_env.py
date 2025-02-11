@@ -1,3 +1,4 @@
+import json
 import random
 from typing import List, Dict, Sequence, Any, Union
 
@@ -39,7 +40,10 @@ class SimpleEnv(BaseEnv):
                  output_type: str = "ids",
                  **kwargs: Any) -> Union[List[Sequence[int]], List[str], List[List[Dict[str, Any]]]]:
         completions = llm.chat(prompts, sampling_params=sampling_params, use_tqdm=False) # type: ignore
-        self.logger.info(f"First completion: {completions[0].outputs[0].text}")
+        self.logger.info(
+            "Example completion:\n" +
+            json.dumps({"role": "assistant", "content": completions[0].outputs[0].text}, indent=4)
+        )
         if output_type == "ids":
             return [completion.outputs[0].token_ids for completion in completions]
         elif output_type == "text":
