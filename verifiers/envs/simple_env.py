@@ -61,7 +61,7 @@ class SimpleEnv(BaseEnv):
             states[i]["prompt_ids"] = list(completion.prompt_token_ids)
             states[i]["prompt_ids_tk"] = list(self.tokenizer.apply_chat_template(states[i]["messages"][:states[i]["prompt_messages"]], tokenize=True, add_generation_prompt=True))
             states[i]["completion_ids"] = list(completion.outputs[0].token_ids)
-            states[i]["completion_ids_tk"] = list(self.tokenizer.apply_chat_template(states[i]["messages"][states[i]["prompt_messages"]:], tokenize=True, add_generation_prompt=False))
+            states[i]["completion_ids_tk"] = list(self.tokenizer.apply_chat_template(states[i]["messages"], tokenize=True, add_generation_prompt=False))[len(states[i]["prompt_ids_tk"]):]
 
         
         self.logger.info(f"Prompt IDs (tk): {states[0]['prompt_ids_tk']} \nlen: {len(states[0]['prompt_ids_tk'])}")
