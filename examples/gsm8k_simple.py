@@ -1,7 +1,7 @@
 from trl import GRPOTrainer
 import verifiers as vf
 
-model_name = "Qwen/Qwen2.5-1.5B-Instruct"
+model_name = "Qwen/Qwen2.5-Math-1.5B"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
 vf_env = vf.MathEnv(dataset="gsm8k")
