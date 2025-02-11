@@ -42,7 +42,6 @@ class SimpleEnv(BaseEnv):
         custom_sp = sampling_params.clone()
         for k, v in self.sampling_args.items():
             setattr(custom_sp, k, v)
-        custom_sp.update(self.sampling_args)
 
         states = [{
             "messages": m,
