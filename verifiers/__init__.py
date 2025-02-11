@@ -3,7 +3,7 @@ from .envs.code_env import CodeEnv
 from .envs.doublecheck_env import DoubleCheckEnv
 from .envs.math_env import MathEnv
 from .envs.simple_env import SimpleEnv
-from .utils.data_utils import extract_boxed_answer, extract_hash_answer
+from .utils.data_utils import extract_boxed_answer, extract_hash_answer, preprocess_dataset
 from .utils.model_utils import get_model, get_tokenizer, get_model_and_tokenizer
 from .utils.config_utils import get_default_grpo_config
 from .utils.logging_utils import setup_logging
@@ -25,4 +25,5 @@ __all__ = [
     "get_default_grpo_config",
     "extract_boxed_answer",
     "extract_hash_answer",
+    "preprocess_dataset",
 ]

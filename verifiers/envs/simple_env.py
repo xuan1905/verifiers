@@ -2,21 +2,21 @@ import json
 import random
 from typing import List, Dict, Sequence, Any, Union
 
-from datasets import load_dataset, Dataset
-from trl.trainer.grpo_trainer import RewardFunc
 from vllm import LLM, SamplingParams # type: ignore
 
 from verifiers.envs.base import BaseEnv
 
+
 class SimpleEnv(BaseEnv):
     def __init__(self,
-                 dataset: str = "gsm8k",
                  system_prompt: str = "",
-                 few_shot: List[Dict[str, str]] = [], **kwargs):
+                 few_shot: List[Dict[str, str]] = [],
+                 sampling_args: Dict[str, Any] = {},
+                 **kwargs):
         super().__init__(**kwargs)
-        self.dataset_name = dataset
         self.system_prompt = system_prompt
         self.few_shot = few_shot
+        self.sampling_args = sampling_args
 
     def format_prompt(self, prompt: str, fewshot_prob: float = 1.0) -> List[Dict[str, str]]:
         messages = []
@@ -27,19 +27,18 @@ class SimpleEnv(BaseEnv):
         messages.append({"role": "user", "content": prompt})
         return messages
 
-    def get_dataset(self, **kwargs: Any) -> Dataset:
-        dataset: Dataset = load_dataset(self.dataset_name)['train'] # type: ignore
-        return dataset
-    
-    def get_rubric(self, **kwargs: Any) -> List[RewardFunc]:
-        return []
-
     def generate(self, prompts: List[List[Dict[str, Any]]],
                  llm: LLM,
                  sampling_params: SamplingParams,
                  output_type: str = "ids",
                  **kwargs: Any) -> Union[List[Sequence[int]], List[str], List[List[Dict[str, Any]]]]:
-        completions = llm.chat(prompts, sampling_params=sampling_params, use_tqdm=False) # type: ignore
+        
+        custom_sp = sampling_params.copy()
+        custom_sp.update(self.sampling_args)
+
+        # get completions
+        completions = llm.chat(prompts, sampling_params=custom_sp, use_tqdm=False) # type: ignore
+
         self.logger.info(
             "Example completion:\n" +
             json.dumps({"role": "assistant", "content": completions[0].outputs[0].text}, indent=4)
@@ -51,8 +50,4 @@ class SimpleEnv(BaseEnv):
         elif output_type == "messages":
             return [[{"role": "assistant", "content": c.outputs[0].text}] for c in completions]
         else:
-            raise ValueError(f"Invalid output type: {output_type}")
-
-    
-
-    
+            raise ValueError(f"Invalid output type: {output_type}")    
