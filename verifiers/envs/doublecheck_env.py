@@ -35,4 +35,4 @@ class DoubleCheckEnv(MultiStepEnv):
         return len(messages) > 1 and messages[-2]['content'] == 'Are you sure?'
     
     def env_response(self, messages: List[Dict[str, str]], **kwargs: Any) -> Dict[str, str]:
-        return {'role': 'assistant', 'content': 'Are you sure?'}
+        return {'role': 'user', 'content': 'Are you sure?'}
