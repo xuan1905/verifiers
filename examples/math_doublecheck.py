@@ -8,9 +8,6 @@ vf_env = vf.DoubleCheckEnv(dataset="math")
 dataset = vf_env.get_dataset()
 rubric = vf_env.get_rubric()
 training_args = vf.get_default_grpo_config(run_name="math_dc_qwen2.5-math-1.5b", num_gpus=8)
-training_args.learning_rate = 3e-6
-training_args.per_device_train_batch_size=12
-training_args.num_generations=12
 trainer = GRPOTrainer(
     model=model,
     processing_class=tokenizer,

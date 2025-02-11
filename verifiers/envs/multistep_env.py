@@ -57,7 +57,7 @@ class MultiStepEnv(BaseEnv):
                  sampling_params: SamplingParams,
                  output_type: str = "ids",
                  **kwargs: Any) -> Union[List[Sequence[int]], List[str], List[List[Dict[str, Any]]]]:
-        custom_sp = sampling_params.copy()
+        custom_sp = sampling_params.clone()
         custom_sp.update(self.sampling_args)
 
         # initialize state variables
@@ -85,7 +85,7 @@ class MultiStepEnv(BaseEnv):
         if output_type == "ids":
             return [s["completion_ids"] for s in states]
         elif output_type == "messages":
-            return [s["messages"] for s in states]
+            return [s["messages"][s["prompt_messages"]:] for s in states]
         else:
             raise ValueError(f"Invalid output type: {output_type}")
 

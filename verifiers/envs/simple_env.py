@@ -33,7 +33,7 @@ class SimpleEnv(BaseEnv):
                  output_type: str = "ids",
                  **kwargs: Any) -> Union[List[Sequence[int]], List[str], List[List[Dict[str, Any]]]]:
         
-        custom_sp = sampling_params.copy()
+        custom_sp = sampling_params.clone()
         custom_sp.update(self.sampling_args)
 
         # get completions
