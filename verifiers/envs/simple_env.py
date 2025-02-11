@@ -17,7 +17,7 @@ class SimpleEnv(BaseEnv):
         self.system_prompt = system_prompt
         self.few_shot = few_shot
 
-    def format_prompt(self, prompt: str, fewshot_prob: float = 0.5) -> List[Dict[str, str]]:
+    def format_prompt(self, prompt: str, fewshot_prob: float = 1.0) -> List[Dict[str, str]]:
         messages = []
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})

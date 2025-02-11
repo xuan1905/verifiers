@@ -17,7 +17,3 @@ trainer = GRPOTrainer(
     train_dataset=dataset,
 )
 trainer.train()
-vf_env.eval(batch_size=32)
-
-
-

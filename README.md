@@ -35,7 +35,7 @@ vf_env.eval(batch_size=32)
 See `examples/doublecheck.py` for a complete example.
 
 
-## Featureson)
+## Features
 - [X] Environments: `SimpleEnv`, `MathEnv`, `DoubleCheckEnv`
 - [X] Dataset formatting
 - [X] Rubrics for math correctness + response formatting
