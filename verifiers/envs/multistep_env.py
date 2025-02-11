@@ -17,6 +17,7 @@ class MultiStepEnv(BaseEnv):
         self.system_prompt = system_prompt
         self.few_shot = few_shot
         self.sampling_args = sampling_args
+        self.tokenizer = None
 
     @abstractmethod
     def is_completed(self, messages: List[Dict[str, str]], **kwargs: Any) -> bool:
@@ -38,6 +39,7 @@ class MultiStepEnv(BaseEnv):
         for i, j in enumerate(live_indices):
             if states[j]["prompt_tokens"] == -1:
                 states[j]["prompt_tokens"] = len(llm_responses[i].prompt_token_ids)
+                states[j]["prompt_ids"] = llm_responses[i].prompt_token_ids
             states[j]["messages"].append({"role": "assistant", "content": llm_responses[i].outputs[0].text})
         
             # update completion ids
@@ -68,6 +70,7 @@ class MultiStepEnv(BaseEnv):
             "response": None,
             "prompt_messages": len(m),
             "prompt_tokens": -1,
+            "prompt_ids": [],
             "completed": False,
             "completion_ids": []
         } for m in prompts]
@@ -83,6 +86,16 @@ class MultiStepEnv(BaseEnv):
             "\n\nExample completion:\n" +
             json.dumps(states[0]["messages"][states[0]["prompt_messages"]:], indent=4)
         )
+
+        self.logger.info(f"Prompt IDs: {states[0]['prompt_ids']}")
+        self.logger.info(f"Prompt (tokenized): {self.tokenizer.apply_chat_template(states[0]['messages'][:states[0]['prompt_messages']], tokenize=False, add_generation_prompt=True)}")
+        self.logger.info(f"Prompt (token ids): {self.tokenizer.apply_chat_template(states[0]['messages'][:states[0]['prompt_messages']], tokenize=True, add_generation_prompt=True)}")
+
+        self.logger.info(f"Completion IDs (computed): {states[0]['completion_ids']}")    
+        self.logger.info(f"Completion IDs (actual): {self.tokenizer.apply_chat_template(states[0]['messages'][states[0]['prompt_messages']:], tokenize=True)}")
+
+        self.logger.info(f"All IDs: {self.tokenizer.apply_chat_template(states[0]['messages'], tokenize=True)}")
+        self.logger.info(f"All (tokenized): {self.tokenizer.apply_chat_template(states[0]['messages'], tokenize=False)}")
         if output_type == "ids":
             return [s["completion_ids"] for s in states]
         elif output_type == "messages":

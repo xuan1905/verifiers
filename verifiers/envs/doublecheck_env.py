@@ -17,7 +17,7 @@ class DoubleCheckEnv(MultiStepEnv):
                  **kwargs):
         
         sampling_args = {
-            "include_stop_str_in_output": True,
+            #"include_stop_str_in_output": True,
             "skip_special_tokens": False,
             "spaces_between_special_tokens": False,
         }
