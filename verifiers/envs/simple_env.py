@@ -53,6 +53,7 @@ class SimpleEnv(BaseEnv):
         } for m in prompts]
 
         # get completions
+        self.logger.info(f"Prompt: {prompts[0]}")
         completions = llm.chat(prompts, sampling_params=custom_sp, use_tqdm=False) # type: ignore
 
         for i, completion in enumerate(completions):
