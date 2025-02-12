@@ -43,7 +43,7 @@ class MultiStepEnv(BaseEnv):
             # update completion ids
             states[j]["completion_ids"] = list(llm_responses[i].prompt_token_ids)
             states[j]["completion_ids"].extend(list(llm_responses[i].outputs[0].token_ids))
-            states[j]["completion_ids"] = states[j]["completion_ids"][states[j]["prompt_tokens"]:]
+            states[j]["completion_ids"] = states[j]["completion_ids"][len(states[j]["prompt_ids"]):]
             
             if self.is_completed(states[j]["messages"]) or len(states[j]["completion_ids"]) > sampling_params.max_tokens:
                 states[j]["completed"] = True
