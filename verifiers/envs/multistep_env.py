@@ -47,8 +47,11 @@ class MultiStepEnv(BaseEnv):
             states[j]["completion_ids"].extend(list(llm_responses[i].outputs[0].token_ids))
             states[j]["completion_ids"] = states[j]["completion_ids"][states[j]["prompt_tokens"]:]
             
-            if self.is_completed(states[j]["messages"]):
+
+            if self.is_completed(states[j]["messages"]) or len(states[j]["completion_ids"]) > sampling_params.max_tokens:
                 states[j]["completed"] = True
+                states[j]["completion_ids"] = states[j]["completion_ids"][:sampling_params.max_tokens]
+
                 all_ids = self.tokenizer.apply_chat_template(states[j]["messages"], tokenize=True)
                 prompt_ids = self.tokenizer.apply_chat_template(states[j]["messages"][:states[j]["prompt_messages"]], tokenize=True, add_generation_prompt=True)
                 states[j]["prompt_tokens_tk"] = len(prompt_ids)
@@ -93,13 +96,13 @@ class MultiStepEnv(BaseEnv):
             json.dumps(states[0]["messages"][states[0]["prompt_messages"]:], indent=4)
         )
 
-        self.logger.info(f"Prompt IDs (tk): {states[0]['prompt_ids_tk']} \nlen: {len(states[0]['prompt_ids_tk'])}")
-        self.logger.info(f"Prompt IDs (vllm): {states[0]['prompt_ids']} \nlen: {len(states[0]['prompt_ids'])}")
-        self.logger.info(f"Completion IDs (tk): {states[0]['completion_ids_tk']} \nlen: {len(states[0]['completion_ids_tk'])}")    
-        self.logger.info(f"Completion IDs (vllm): {states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids'])}")
-        self.logger.info(f"All (vllm): {states[0]['prompt_ids'] + states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids']) + len(states[0]['prompt_ids'])}")
-        self.logger.info(f"All (tk): {states[0]['prompt_ids_tk'] + states[0]['completion_ids_tk']} \nlen: {len(states[0]['completion_ids_tk']) + len(states[0]['prompt_ids_tk'])}")
-        self.logger.info(f"All (tokenized): {self.tokenizer.apply_chat_template(states[0]['messages'], tokenize=False)}")
+        self.logger.debug(f"Prompt IDs: {states[0]['prompt_ids']} \nlen: {len(states[0]['prompt_ids'])}")
+        self.logger.debug(f"Completion IDs (vllm): {states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids'])}")
+        self.logger.debug(f"Completion IDs (tk): {states[0]['completion_ids_tk']} \nlen: {len(states[0]['completion_ids_tk'])}")    
+        self.logger.debug(f"All (vllm): {states[0]['prompt_ids'] + states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids']) + len(states[0]['prompt_ids'])}")
+        self.logger.debug(f"All (tk): {states[0]['prompt_ids_tk'] + states[0]['completion_ids_tk']} \nlen: {len(states[0]['completion_ids_tk']) + len(states[0]['prompt_ids_tk'])}")
+        self.logger.debug(f"All (tokenized): {self.tokenizer.apply_chat_template(states[0]['messages'], tokenize=False)}")
+        
         if output_type == "ids":
             return [s["completion_ids"] for s in states]
         elif output_type == "messages":
