@@ -57,7 +57,7 @@ class MultiStepEnv(BaseEnv):
                 states[j]["prompt_tokens_tk"] = len(prompt_ids)
                 states[j]["prompt_ids_tk"] = prompt_ids
                 states[j]["completion_tokens_tk"] = len(all_ids) - len(prompt_ids)
-                states[j]["completion_ids_tk"] = all_ids[len(prompt_ids):]
+                states[j]["completion_ids_tk"] = all_ids[len(prompt_ids):][:sampling_params.max_tokens]
             
             else:
                 states[j]["messages"].append(self.env_response(states[j]["messages"]))
