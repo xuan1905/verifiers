@@ -96,12 +96,12 @@ class MultiStepEnv(BaseEnv):
             json.dumps(states[0]["messages"][states[0]["prompt_messages"]:], indent=4)
         )
 
-        self.logger.debug(f"Prompt IDs: {states[0]['prompt_ids']} \nlen: {len(states[0]['prompt_ids'])}")
-        self.logger.debug(f"Completion IDs (vllm): {states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids'])}")
-        self.logger.debug(f"Completion IDs (tk): {states[0]['completion_ids_tk']} \nlen: {len(states[0]['completion_ids_tk'])}")    
-        self.logger.debug(f"All (vllm): {states[0]['prompt_ids'] + states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids']) + len(states[0]['prompt_ids'])}")
-        self.logger.debug(f"All (tk): {states[0]['prompt_ids_tk'] + states[0]['completion_ids_tk']} \nlen: {len(states[0]['completion_ids_tk']) + len(states[0]['prompt_ids_tk'])}")
-        self.logger.debug(f"All (tokenized): {self.tokenizer.apply_chat_template(states[0]['messages'], tokenize=False)}")
+        self.logger.info(f"Prompt IDs: {states[0]['prompt_ids']} \nlen: {len(states[0]['prompt_ids'])}")
+        self.logger.info(f"Completion IDs (vllm): {states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids'])}")
+        self.logger.info(f"Completion IDs (tk): {states[0]['completion_ids_tk']} \nlen: {len(states[0]['completion_ids_tk'])}")    
+        self.logger.info(f"All (vllm): {states[0]['prompt_ids'] + states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids']) + len(states[0]['prompt_ids'])}")
+        self.logger.info(f"All (tk): {states[0]['prompt_ids_tk'] + states[0]['completion_ids_tk']} \nlen: {len(states[0]['completion_ids_tk']) + len(states[0]['prompt_ids_tk'])}")
+        self.logger.info(f"All (tokenized): {self.tokenizer.apply_chat_template(states[0]['messages'], tokenize=False)}")
         
         if output_type == "ids":
             return [s["completion_ids"] for s in states]
