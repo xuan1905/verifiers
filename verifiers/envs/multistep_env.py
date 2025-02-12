@@ -17,7 +17,6 @@ class MultiStepEnv(BaseEnv):
         self.system_prompt = system_prompt
         self.few_shot = few_shot
         self.sampling_args = sampling_args
-        self.tokenizer = None
 
     @abstractmethod
     def is_completed(self, messages: List[Dict[str, str]], **kwargs: Any) -> bool:
@@ -37,8 +36,7 @@ class MultiStepEnv(BaseEnv):
         llm_responses = llm.chat(messages_to_step, sampling_params=sampling_params, use_tqdm=False) # type: ignore
 
         for i, j in enumerate(live_indices):
-            if states[j]["prompt_tokens"] == -1:
-                states[j]["prompt_tokens"] = len(llm_responses[i].prompt_token_ids)
+            if len(states[j]["prompt_ids"]) == 0:
                 states[j]["prompt_ids"] = llm_responses[i].prompt_token_ids
             states[j]["messages"].append({"role": "assistant", "content": llm_responses[i].outputs[0].text})
         
@@ -47,17 +45,9 @@ class MultiStepEnv(BaseEnv):
             states[j]["completion_ids"].extend(list(llm_responses[i].outputs[0].token_ids))
             states[j]["completion_ids"] = states[j]["completion_ids"][states[j]["prompt_tokens"]:]
             
-
             if self.is_completed(states[j]["messages"]) or len(states[j]["completion_ids"]) > sampling_params.max_tokens:
                 states[j]["completed"] = True
                 states[j]["completion_ids"] = states[j]["completion_ids"][:sampling_params.max_tokens]
-
-                all_ids = self.tokenizer.apply_chat_template(states[j]["messages"], tokenize=True)
-                prompt_ids = self.tokenizer.apply_chat_template(states[j]["messages"][:states[j]["prompt_messages"]], tokenize=True, add_generation_prompt=True)
-                states[j]["prompt_tokens_tk"] = len(prompt_ids)
-                states[j]["prompt_ids_tk"] = prompt_ids
-                states[j]["completion_tokens_tk"] = len(all_ids) - len(prompt_ids)
-                states[j]["completion_ids_tk"] = all_ids[len(prompt_ids):][:sampling_params.max_tokens]
             
             else:
                 states[j]["messages"].append(self.env_response(states[j]["messages"]))
@@ -78,7 +68,6 @@ class MultiStepEnv(BaseEnv):
         states = [{
             "messages": m,
             "prompt_messages": len(m),
-            "prompt_tokens": -1,
             "prompt_ids": [],
             "completed": False,
             "completion_ids": []
@@ -88,21 +77,15 @@ class MultiStepEnv(BaseEnv):
         while not all_completed:
             states = self.step(states, llm, custom_sp)
             all_completed = all(state["completed"] for state in states)
-
-        self.logger.info(
-            "Example prompt:\n" +
-            json.dumps(states[0]["messages"][:states[0]["prompt_messages"]], indent=4) +
-            "\n\nExample completion:\n" +
-            json.dumps(states[0]["messages"][states[0]["prompt_messages"]:], indent=4)
-        )
-
-        self.logger.info(f"Prompt IDs: {states[0]['prompt_ids']} \nlen: {len(states[0]['prompt_ids'])}")
-        self.logger.info(f"Completion IDs (vllm): {states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids'])}")
-        self.logger.info(f"Completion IDs (tk): {states[0]['completion_ids_tk']} \nlen: {len(states[0]['completion_ids_tk'])}")    
-        self.logger.info(f"All (vllm): {states[0]['prompt_ids'] + states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids']) + len(states[0]['prompt_ids'])}")
-        self.logger.info(f"All (tk): {states[0]['prompt_ids_tk'] + states[0]['completion_ids_tk']} \nlen: {len(states[0]['completion_ids_tk']) + len(states[0]['prompt_ids_tk'])}")
-        self.logger.info(f"All (tokenized): {self.tokenizer.apply_chat_template(states[0]['messages'], tokenize=False)}")
         
+        self.logger.debug(f"Prompt 0 IDs: {states[0]['prompt_ids']} \nlen: {len(states[0]['prompt_ids'])}")
+        self.logger.debug(f"Completion 0 IDs: {states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids'])}")
+        self.logger.info(
+            "Prompt 0:\n" +
+            json.dumps(states[0]["messages"][:states[0]["prompt_messages"]], indent=4) +
+            "\n\nCompletion 0:\n" +
+            json.dumps(states[0]["messages"][states[0]["prompt_messages"]:], indent=4)
+        ) 
         if output_type == "ids":
             return [s["completion_ids"] for s in states]
         elif output_type == "messages":

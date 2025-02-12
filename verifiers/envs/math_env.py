@@ -26,7 +26,6 @@ class MathEnv(SimpleEnv):
         ) 
         self.eval_dataset = None
         self.rubric = MathRubric()
-        self.tokenizer = None
     
     def get_dataset(self, **kwargs: Any):
         return self.dataset

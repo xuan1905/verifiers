@@ -17,7 +17,6 @@ class DoubleCheckEnv(MultiStepEnv):
                  **kwargs):
         
         sampling_args = {
-            #"include_stop_str_in_output": True,
             "skip_special_tokens": False,
             "spaces_between_special_tokens": False,
         }
@@ -30,7 +29,6 @@ class DoubleCheckEnv(MultiStepEnv):
             few_shot=few_shot
         )
         self.rubric = MathRubric()
-        self.tokenizer = None
 
     def get_rubric(self, **kwargs: Any) -> List[RewardFunc]:
         return self.rubric.get_reward_funcs()
