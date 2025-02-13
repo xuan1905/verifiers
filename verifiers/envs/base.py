@@ -13,6 +13,7 @@ class BaseEnv(ABC):
         for key, value in kwargs.items():
             setattr(self, key, value)
         self.logger = logging.getLogger(f"verifiers.envs.{self.__class__.__name__}")
+        self.tokenizer = None
 
     @abstractmethod
     def get_dataset(self, **kwargs: Any) -> Dataset:
