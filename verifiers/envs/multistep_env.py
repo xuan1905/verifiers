@@ -85,7 +85,11 @@ class MultiStepEnv(BaseEnv):
             json.dumps(states[0]["messages"][:states[0]["prompt_messages"]], indent=4) +
             "\n\nCompletion 0:\n" +
             json.dumps(states[0]["messages"][states[0]["prompt_messages"]:], indent=4)
-        ) 
+        )
+        if self.tokenizer is not None:
+            self.logger.debug(
+                f"Completion 0 (decoded): {self.tokenizer.decode(states[0]['completion_ids'])}"
+            )
         if output_type == "ids":
             return [s["completion_ids"] for s in states]
         elif output_type == "messages":
