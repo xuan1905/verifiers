@@ -20,9 +20,9 @@ from trl import GRPOTrainer
 model_name = "Qwen/Qwen2.5-1.5B-Instruct"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
-vf_env = vf.DoubleCheckEnv()
+vf_env = vf.DoubleCheckEnv(dataset="gsm8k")
 trainer = GRPOTrainer(
-    model=model_name,
+    model=model,
     processing_class=tokenizer,
     env=vf_env,
     reward_funcs=vf_env.get_rubric(),
@@ -30,7 +30,7 @@ trainer = GRPOTrainer(
     train_dataset=vf_env.get_dataset(),
 )
 trainer.train()
-vf_env.eval(batch_size=32)
+# vf_env.eval(batch_size=32) (coming soon)
 ```
 See `examples/doublecheck.py` for a complete example.
 
