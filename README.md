@@ -39,7 +39,7 @@ trainer.train()
 ```
 See `examples/doublecheck.py` for a complete example.
 
-To create your own multi-step environment, you can inherit from `MultiStepEnv` and implement the following methods:
+To create your own multi-step environment, inherit from `MultiStepEnv` and implement:
 ```python
 def get_dataset(self, **kwargs: Any) -> Dataset:
     pass
