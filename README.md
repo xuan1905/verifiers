@@ -37,7 +37,7 @@ trainer = GRPOTrainer(
 trainer.train()
 # vf_env.eval(batch_size=32) (coming soon)
 ```
-See `examples/doublecheck.py` for a complete example.
+See `examples/gsm8k_doublecheck.py` for a complete example.
 
 To create your own multi-step environment, inherit from `MultiStepEnv` and implement:
 ```python
