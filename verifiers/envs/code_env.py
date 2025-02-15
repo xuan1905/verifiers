@@ -34,7 +34,12 @@ class CodeEnv(MultiStepEnv):
         return self.rubric.get_reward_funcs()
     
     def is_completed(self, messages: List[Dict[str, str]], **kwargs: Any) -> bool:
-        return self.llm_parser.parse(messages[-1]["content"]).get("answer") is not None
+        try:
+            parsed = self.llm_parser.parse(messages[-1]["content"])
+            # Check if we got a valid answer field (not just None from failed parsing)
+            return hasattr(parsed, 'answer') and parsed.answer is not None
+        except Exception:
+            return False
 
     def run_code(self, code: str, **kwargs: Any) -> str:
         try:
@@ -52,11 +57,13 @@ class CodeEnv(MultiStepEnv):
         except subprocess.TimeoutExpired:
             return "Error: Code execution timed out after 10 seconds"
 
-
     def env_response(self, messages: List[Dict[str, str]], **kwargs: Any) -> Dict[str, str]:
-        code = self.llm_parser.parse(messages[-1]["content"]).get("code")
-        if code:
-            output = self.run_code(code)
-            return {"role": "user", "content": self.env_parser.format(output=output)}
-        else:
-            return {"role": "user", "content": "Error: Code not found, ensure correct formatting."}
+        try:
+            parsed = self.llm_parser.parse(messages[-1]["content"])
+            # Check if we got a valid code field (not just None from failed parsing)
+            if hasattr(parsed, 'code') and parsed.code is not None:
+                output = self.run_code(parsed.code)
+                return {"role": "user", "content": self.env_parser.format(output=output)}
+        except Exception:
+            pass
+        return {"role": "user", "content": "Error: Code not found or invalid XML format. Please ensure correct formatting."}
