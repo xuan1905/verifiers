@@ -39,6 +39,21 @@ trainer.train()
 ```
 See `examples/doublecheck.py` for a complete example.
 
+To create your own multi-step environment, you can inherit from `MultiStepEnv` and implement the following methods:
+```python
+def get_dataset(self, **kwargs: Any) -> Dataset:
+    pass
+
+def get_rubric(self, **kwargs: Any) -> List[RewardFunc]:
+    pass
+
+def is_completed(self, messages: List[Dict[str, str]], **kwargs: Any) -> bool:
+    pass
+
+def env_response(self, messages: List[Dict[str, str]], **kwargs: Any) -> Dict[str, str]:
+    pass
+```
+
 
 ## Features
 - [X] Environments: `SimpleEnv`, `MathEnv`, `DoubleCheckEnv`, `CodeEnv`
