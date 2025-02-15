@@ -13,7 +13,7 @@ class CodeRubric:
             for msg in reversed(trajectory):
                 try:
                     parsed = self.parser.parse(msg['content'])
-                    if parsed.answer is not None:
+                    if hasattr(parsed, 'answer') and parsed.answer is not None:
                         return parsed.answer
                 except Exception:
                     continue
@@ -88,14 +88,16 @@ class CodeRubric:
                     if msg['role'] == 'assistant':
                         try:
                             parsed = self.parser.parse(msg['content'])
-                            if parsed.code is not None:
+                            if hasattr(parsed, 'code') and parsed.code is not None:
                                 total_code_steps += 1
                                 # Look for the next user message (environment response)
                                 if i + 1 < len(trajectory) and trajectory[i + 1]['role'] == 'user':
                                     try:
-                                        env_response = self.parser.parse(trajectory[i + 1]['content']).output
-                                        if not (env_response and env_response.startswith('Error:')):
-                                            successful_executions += 1
+                                        env_response = self.parser.parse(trajectory[i + 1]['content'])
+                                        if hasattr(env_response, 'output'):
+                                            output = env_response.output
+                                            if not (output and output.startswith('Error:')):
+                                                successful_executions += 1
                                     except Exception:
                                         continue
                         except Exception:
