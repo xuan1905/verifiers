@@ -36,18 +36,20 @@ See `examples/doublecheck.py` for a complete example.
 
 
 ## Features
-- [X] Environments: `SimpleEnv`, `MathEnv`, `DoubleCheckEnv`
+- [X] Environments: `SimpleEnv`, `MathEnv`, `DoubleCheckEnv`, `CodeEnv`
+- [X] Multi-step code execution in `CodeEnv` 
 - [X] Dataset formatting
 - [X] Rubrics for math correctness + response formatting
+- [X] Rubrics for code correctness + response formatting
 - [X] Defaults for GRPO, model, tokenizer, etc.
 
 ## Roadmap
 
 There are a number of features we're planning to support in the near future:
 - [ ] Integrated evals
-- [ ] Multi-step code execution in `CodeEnv` 
 - [ ] TextArena games
 - [ ] LLM judges
+- [ ] Claude-generated rubrics
 - [ ] A range of other environments (suggestions welcome!)
 - [ ] PPO
 - [ ] Potential interoperability with other RL libraries (veRL, OpenRLHF, open-instruct, oat, etc.)
