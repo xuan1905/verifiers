@@ -7,7 +7,7 @@ from trl.trainer.grpo_trainer import RewardFunc
 from verifiers.envs.multistep_env import MultiStepEnv
 from verifiers.parsers import XMLParser
 from verifiers.prompts import CODE_FEW_SHOT, CODE_PROMPT
-from verifiers.rubrics import MathRubric
+from verifiers.rubrics import CodeRubric
 from verifiers.utils import preprocess_dataset
 
 class CodeEnv(MultiStepEnv):
@@ -23,7 +23,7 @@ class CodeEnv(MultiStepEnv):
             few_shot=few_shot
         )
         self.eval_dataset = None
-        self.rubric = MathRubric()
+        self.rubric = CodeRubric()
         self.llm_parser = XMLParser(fields=["reasoning", ("code", "answer")])
         self.env_parser = XMLParser(fields=["output"])
 
