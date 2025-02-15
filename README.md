@@ -10,6 +10,11 @@ PyPI [coming soon](https://pypi.org/project/verifiers/) once a couple more featu
 ```
 (uv) pip install -e .
 ```
+Recommended additional installs:
+```
+(uv) pip install liger-kernel
+(uv) pip install flash-attn --no-build-isolation
+```
 
 ## Usage
 
