@@ -96,7 +96,7 @@ class CodeRubric:
                                     # Check if it's already parsed XML
                                     if env_response.startswith('<output>'):
                                         parsed_response = self.parser.parse(env_response)
-                                        if hasattr(parsed_response, 'output'):
+                                        if hasattr(parsed_response, 'output') and len(parsed_response.output) > 0:
                                             output = parsed_response.output
                                         else:
                                             output = env_response
