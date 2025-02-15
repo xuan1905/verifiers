@@ -25,7 +25,7 @@ class MathRubric:
             """Reward function that checks if the completion has a specific format."""
             pattern = r"^<reasoning>\n.*?\n</reasoning>\n<answer>\n.*?\n</answer>\n$"
             responses = [c[0]["content"] for c in completions]
-            matches = [re.match(pattern, r) for r in responses] 
+            matches = [re.match(pattern, r, re.DOTALL) for r in responses] 
             return [0.5 if match else 0.0 for match in matches]
 
         self.reward_funcs = [correctness_reward_func, xml_reward_func, format_reward_func]
