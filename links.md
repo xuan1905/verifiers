@@ -14,10 +14,12 @@
 ## Other LLM RL Environments
 - SWE-Gym
 
+
 ## Related Papers
 - TBD
 
 
 ## Potential `Environment` Sources
 - TextArena
+- SnakeBench
 - smolagents
