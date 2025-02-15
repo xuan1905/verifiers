@@ -8,6 +8,7 @@ from verifiers.parsers import XMLParser
 class CodeRubric:
     def __init__(self):
         self.parser = XMLParser(fields=["reasoning", ("code", "answer")])
+        self.env_parser = XMLParser(fields=["output"])
 
         def get_last_answer(trajectory):
             for msg in reversed(trajectory):
@@ -93,7 +94,7 @@ class CodeRubric:
                                 # Look for the next user message (environment response)
                                 if i + 1 < len(trajectory) and trajectory[i + 1]['role'] == 'user':
                                     env_response = trajectory[i + 1]['content']
-                                    parsed_response = self.parser.parse(env_response)
+                                    parsed_response = self.env_parser.parse(env_response)
                                     if hasattr(parsed_response, 'output'):
                                         output = parsed_response.output
                                         if len(output) > 0 and not output.startswith('Error:'):
