@@ -63,7 +63,10 @@ class CodeEnv(MultiStepEnv):
             # Check if we got a valid code field (not just None from failed parsing)
             if hasattr(parsed, 'code') and parsed.code is not None:
                 output = self.run_code(parsed.code)
-                return {"role": "user", "content": self.env_parser.format(output=output)}
+                if len(output.strip()) > 0:
+                    return {"role": "user", "content": self.env_parser.format(output=output)}
+                else:
+                    return {"role": "user", "content": "Error: Code execution returned empty output."}
         except Exception:
             pass
         return {"role": "user", "content": "Error: Code not found or invalid XML format. Please ensure correct formatting."}
