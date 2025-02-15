@@ -93,18 +93,11 @@ class CodeRubric:
                                 # Look for the next user message (environment response)
                                 if i + 1 < len(trajectory) and trajectory[i + 1]['role'] == 'user':
                                     env_response = trajectory[i + 1]['content']
-                                    # Check if it's already parsed XML
-                                    if env_response.startswith('<output>'):
-                                        parsed_response = self.parser.parse(env_response)
-                                        if hasattr(parsed_response, 'output') and len(parsed_response.output) > 0:
-                                            output = parsed_response.output
-                                        else:
-                                            output = env_response
-                                    else:
-                                        output = env_response
-                                        
-                                    if not (output and output.startswith('Error:')):
-                                        successful_executions += 1
+                                    parsed_response = self.parser.parse(env_response)
+                                    if hasattr(parsed_response, 'output'):
+                                        output = parsed_response.output
+                                        if len(output) > 0 and not output.startswith('Error:'):
+                                            successful_executions += 1
                         except Exception:
                             continue
                 
