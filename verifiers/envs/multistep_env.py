@@ -2,6 +2,8 @@ from abc import abstractmethod
 import json
 from typing import List, Dict, Sequence, Any, Union
 
+from datasets import Dataset
+from trl.trainer.grpo_trainer import RewardFunc
 from vllm import LLM, SamplingParams # type: ignore
 
 from verifiers.envs.base import BaseEnv
@@ -17,6 +19,14 @@ class MultiStepEnv(BaseEnv):
         self.system_prompt = system_prompt
         self.few_shot = few_shot
         self.sampling_args = sampling_args
+
+    @abstractmethod
+    def get_dataset(self, **kwargs: Any) -> Dataset:
+        pass
+
+    @abstractmethod
+    def get_rubric(self, **kwargs: Any) -> List[RewardFunc]:
+        pass
 
     @abstractmethod
     def is_completed(self, messages: List[Dict[str, str]], **kwargs: Any) -> bool:
