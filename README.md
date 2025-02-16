@@ -10,15 +10,15 @@ PyPI [coming soon](https://pypi.org/project/verifiers/) once a couple more featu
 ```
 (uv) pip install -e .
 ```
-Recommended additional installs:
-```
-(uv) pip install liger-kernel
-(uv) pip install flash-attn --no-build-isolation
-```
+Ensure your `wandb` and `huggingface-cli` logins are set up (or set `report_to=None` in `training_args`).
+
+Tested with Python 3.11 and this [image](https://hub.docker.com/layers/pytorch/pytorch/2.5.1-cuda12.1-cudnn9-devel/images/sha256-e8e63dd7baca894ba11fe1ba48a52a550793c8974f89b533d697784dd20a4dc0). If you encounter version issues, please confirm that you are able to run basic TRL training in your environment before opening an issue. `flash-attn` and `liger-kernel` are included for performance reasons. Recommended usage is via `accelerate` with DeepSpeed ZeRO 3 ([example config](https://github.com/huggingface/trl/blob/main/examples/accelerate_configs/deepspeed_zero3.yaml)) but `torchrun` works in my tests as well.
+
 
 ## Usage
 
 ```python
+# script.py
 import verifiers as vf
 from trl import GRPOTrainer
 
@@ -37,7 +37,7 @@ trainer = GRPOTrainer(
 trainer.train()
 # vf_env.eval(batch_size=32) (coming soon)
 ```
-See `examples/gsm8k_doublecheck.py` for a complete example.
+See `examples` for additional usage examples.
 
 To create your own multi-step environment, inherit from `MultiStepEnv` and implement:
 ```python
@@ -54,6 +54,15 @@ def env_response(self, messages: List[Dict[str, str]], **kwargs: Any) -> Dict[st
     pass
 ```
 
+### Launch Commands
+Accelerate:
+```bash
+accelerate launch --config_file /path/to/deepspeed_zero3.yaml --num_processes [N-1] script.py
+```
+Torchrun:
+```bash
+torchrun --nproc_per_node=[N-1] script.py
+```
 
 ## Features
 - [X] Environments: `SimpleEnv`, `MathEnv`, `DoubleCheckEnv`, `CodeEnv`
