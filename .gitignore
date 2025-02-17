@@ -31,4 +31,3 @@ logs/
 # WIPs
 wip/
 verifiers/envs/search_env.py
-verifiers/envs/tool_env.py

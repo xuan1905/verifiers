@@ -84,3 +84,111 @@ CODE_FEW_SHOT = [
         }
     ]
 ]
+
+tool_parser = XMLParser(fields=["reasoning", ("tool", "answer")])
+result_parser = XMLParser(fields=["result"])
+
+TOOL_FEW_SHOT = [
+    [
+        {
+            'role': 'user',
+            'content': 'What is the current working directory?'
+        },
+        {
+            'role': 'assistant',
+            'content': tool_parser.format(
+                reasoning='Let\'s use the pwd command to find out the current working directory.',
+                tool='pwd'
+            )
+        },
+        {
+            'role': 'user',
+            'content': result_parser.format(result='/Users/user/project')
+        },
+        {
+            'role': 'assistant',
+            'content': tool_parser.format(
+                reasoning='The current working directory is /Users/user/project.',
+                answer='/Users/user/project'
+            )
+        },
+        {
+            'role': 'user',
+            'content': 'How many Python files are in the current directory and its subdirectories?'
+        },
+        {
+            'role': 'assistant',
+            'content': tool_parser.format(
+                reasoning='Let\'s use the find command to count Python files.',
+                tool='find . -name "*.py" | wc -l'
+            )
+        },
+        {
+            'role': 'user',
+            'content': result_parser.format(result='42')
+        },
+        {
+            'role': 'assistant',
+            'content': tool_parser.format(
+                reasoning='There are 42 Python files in the current directory and its subdirectories.',
+                answer='42'
+            )
+        }
+    ]
+]
+
+COMMONSENSE_FEW_SHOT = [
+    [
+        {
+            'role': 'user',
+            'content': 'Which would be louder: a mouse or an elephant?'
+        },
+        {
+            'role': 'assistant',
+            'content': tool_parser.format(
+                reasoning='Let\'s compare the volume levels of a mouse and an elephant.',
+                tool='compare mouse elephant volume'
+            )
+        },
+        {
+            'role': 'user',
+            'content': result_parser.format(result='''{
+  "difference": -4,
+  "mouse_volume": 1,
+  "elephant_volume": 5
+}''')
+        },
+        {
+            'role': 'assistant',
+            'content': tool_parser.format(
+                reasoning='Based on the comparison, an elephant has a volume level of 5 while a mouse has a volume level of 1 (on a scale of 1-5). The difference of -4 indicates the elephant is much louder.',
+                answer='An elephant would be louder than a mouse.'
+            )
+        },
+        {
+            'role': 'user',
+            'content': 'What properties does a car have?'
+        },
+        {
+            'role': 'assistant',
+            'content': tool_parser.format(
+                reasoning='Let\'s look up the properties of a car.',
+                tool='get_related car'
+            )
+        },
+        {
+            'role': 'user',
+            'content': result_parser.format(result='''{
+  "properties": ["metallic", "fast", "loud", "heavy"],
+  "category": "vehicle"
+}''')
+        },
+        {
+            'role': 'assistant',
+            'content': tool_parser.format(
+                reasoning='A car has several key properties: it is metallic, fast, loud, and heavy. It belongs to the category of vehicles.',
+                answer='A car is a vehicle that is metallic, fast, loud, and heavy.'
+            )
+        }
+    ]
+]

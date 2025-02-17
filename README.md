@@ -96,3 +96,24 @@ If you use this code in your research, please cite:
   year={2025}
 }
 ```
+
+## Running Examples
+
+The package includes example scripts showing how to use verifiers in different scenarios. To run them:
+
+```bash
+# Clone and install
+git clone https://github.com/yourusername/verifiers.git
+cd verifiers
+uv pip install -e .
+
+# Run examples
+cd verifiers/examples
+uvx python gsm8k_tool.py  # or any other example script
+```
+
+Examples include:
+- `gsm8k_tool.py`: Using the calculator tool with GSM8K math problems
+- `openbookqa_tool.py`: Using the search tool with OpenBookQA science questions
+
+Each example is self-contained and will create its own isolated environment with the necessary dependencies.
