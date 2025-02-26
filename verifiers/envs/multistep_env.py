@@ -14,6 +14,7 @@ class MultiStepEnv(Environment):
                  system_prompt: str = "",
                  few_shot: List[Dict[str, str]] = [],
                  sampling_args: Dict[str, Any] = {},
+                 mask_env_response: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
         self.system_prompt = system_prompt
@@ -24,6 +25,7 @@ class MultiStepEnv(Environment):
             "n": 1
         }
         self.sampling_args.update(sampling_args)
+        self.env_mask = 0 if mask_env_response else 1
 
     @abstractmethod
     def get_dataset(self, **kwargs: Any) -> Dataset:
@@ -55,25 +57,35 @@ class MultiStepEnv(Environment):
                 states[j]["prompt_ids"] = llm_responses[i].prompt_token_ids
             states[j]["messages"].append({"role": "assistant", "content": llm_responses[i].outputs[0].text})
         
+            # get token lengths of env response and new completion
+            total_prev_len = len(states[j]["prompt_ids"]) + len(states[j]["completion_ids"])
+            env_response_len  = len(list(llm_responses[i].prompt_token_ids)) - total_prev_len # type: ignore
+            new_completion_len = len(llm_responses[i].outputs[0].token_ids)
+
+            # update completion masks
+            states[j]["completion_mask"].extend([self.env_mask] * env_response_len)
+            states[j]["completion_mask"].extend([1] * new_completion_len)
+
             # update completion ids
             states[j]["completion_ids"] = list(llm_responses[i].prompt_token_ids) # type: ignore
             states[j]["completion_ids"].extend(list(llm_responses[i].outputs[0].token_ids))
             states[j]["completion_ids"] = states[j]["completion_ids"][len(states[j]["prompt_ids"]):]
-            
+
             if self.is_completed(states[j]["messages"]) or len(states[j]["completion_ids"]) > sampling_params.max_tokens: # type: ignore
                 states[j]["completed"] = True
                 states[j]["completion_ids"] = states[j]["completion_ids"][:sampling_params.max_tokens]
-            
+                states[j]["completion_mask"] = states[j]["completion_mask"][:sampling_params.max_tokens]
             else:
                 states[j]["messages"].append(self.env_response(states[j]["messages"]))
+
+            assert len(states[j]["completion_mask"]) == len(states[j]["completion_ids"])
 
         return states
 
     def generate(self, prompts: List[List[Dict[str, Any]]],
                  llm: LLM,
                  sampling_params: SamplingParams,
-                 output_type: str = "ids",
-                 **kwargs: Any) -> Union[List[Sequence[int]], List[str], List[List[Dict[str, Any]]]]:
+                 **kwargs: Any) -> Dict[str, List[Sequence[int]] | List[str] |  List[List[Dict[str, Any]]]]:
         custom_sp = sampling_params.clone()
         for k, v in self.sampling_args.items():
             setattr(custom_sp, k, v)
@@ -85,32 +97,24 @@ class MultiStepEnv(Environment):
             "prompt_messages": len(m),
             "prompt_ids": [],
             "completed": False,
-            "completion_ids": []
+            "completion_ids": [],
+            "completion_mask": []
         } for m in prompts]
 
         # main loop
         while not all_completed:
             states = self.step(states, llm, custom_sp)
             all_completed = all(state["completed"] for state in states)
-        
-        self.logger.debug(f"Prompt 0 IDs: {states[0]['prompt_ids']} \nlen: {len(states[0]['prompt_ids'])}")
-        self.logger.debug(f"Completion 0 IDs: {states[0]['completion_ids']} \nlen: {len(states[0]['completion_ids'])}")
-        self.logger.info(
-            "Prompt 0:\n" +
-            json.dumps(states[0]["messages"][:states[0]["prompt_messages"]], indent=4) +
-            "\n\nCompletion 0:\n" +
-            json.dumps(states[0]["messages"][states[0]["prompt_messages"]:], indent=4)
-        )
-        if self.tokenizer is not None:
-            self.logger.debug(
-                f"Completion 0 (decoded): {self.tokenizer.decode(states[0]['completion_ids'])}"
-            )
-        if output_type == "ids":
-            return [s["completion_ids"] for s in states]
-        elif output_type == "messages":
-            return [s["messages"][s["prompt_messages"]:] for s in states]
-        else:
-            raise ValueError(f"Invalid output type: {output_type}")
+
+        completion_messages = [s["messages"][s["prompt_messages"]:] for s in states]
+        completion_ids = [s["completion_ids"] for s in states]
+        completion_mask = [s["completion_mask"] for s in states]
+        output = {
+            "ids": completion_ids,
+            "messages": completion_messages,
+            "mask": completion_mask
+        }
+        return output
 
     
 

@@ -13,9 +13,15 @@ from verifiers.utils import preprocess_dataset
 class CodeEnv(MultiStepEnv):
     def __init__(self,
                  dataset: str = "gsm8k",
+                 max_steps: int = 10,
                  system_prompt: str = CODE_PROMPT,
-                 few_shot: List[Dict[str, str]] = CODE_FEW_SHOT[0]):
-        super().__init__(system_prompt=system_prompt, few_shot=few_shot)
+                 few_shot: List[Dict[str, str]] = CODE_FEW_SHOT[0],
+                 mask_env_response: bool = True):
+        super().__init__(
+            system_prompt=system_prompt,
+            few_shot=few_shot,
+            mask_env_response=mask_env_response
+        )
         self.dataset = preprocess_dataset(
             dataset_name=dataset,
             split="train",

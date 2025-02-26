@@ -1,6 +1,7 @@
 from trl import GRPOConfig
 
-def get_default_grpo_config(run_name: str, num_gpus: int = 1) -> GRPOConfig:
+def get_default_grpo_config(run_name: str,
+                            num_gpus: int = 1) -> GRPOConfig:
     return GRPOConfig(
         output_dir=f"outputs/{run_name}",
         run_name=run_name,
@@ -12,7 +13,7 @@ def get_default_grpo_config(run_name: str, num_gpus: int = 1) -> GRPOConfig:
         adam_beta2=0.99,
         max_grad_norm=0.1,
         beta=0.04,
-        max_prompt_length=512,
+        max_prompt_length=1024,
         max_completion_length=1024,
         per_device_train_batch_size=2,
         num_generations=(2 * num_gpus - 2 if num_gpus > 1 else 2),
@@ -25,6 +26,7 @@ def get_default_grpo_config(run_name: str, num_gpus: int = 1) -> GRPOConfig:
         vllm_gpu_memory_utilization=0.7 if num_gpus > 1 else 0.3,
         logging_steps=1,
         log_on_each_node=False,
+        log_completions=True,
         report_to="wandb",
     )
 

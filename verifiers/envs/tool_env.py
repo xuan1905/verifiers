@@ -77,6 +77,7 @@ class ToolEnv(MultiStepEnv):
                  tools: List[Callable] = [],
                  system_prompt: str = DEFAULT_TOOL_PROMPT_TEMPLATE,
                  few_shot: List[Dict[str, str]] = [],
+                 mask_env_response: bool = True,
                  max_steps: int = 10):
         # Infer schemas from tool functions
         self.tool_schemas = [infer_schema_from_function(tool) for tool in tools]
@@ -86,7 +87,11 @@ class ToolEnv(MultiStepEnv):
         tool_descriptions = format_tool_descriptions(self.tool_schemas)
         formatted_prompt = system_prompt.format(tool_descriptions=tool_descriptions)
         
-        super().__init__(system_prompt=formatted_prompt, few_shot=few_shot)
+        super().__init__(
+            system_prompt=formatted_prompt,
+            few_shot=few_shot,
+            mask_env_response=mask_env_response
+        )
         self.dataset = preprocess_dataset(
             dataset_name=dataset,
             split="train",

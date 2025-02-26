@@ -8,6 +8,7 @@ from verifiers.parsers import XMLParser
 class MathRubric:
     def __init__(self):
         self.parser = XMLParser(fields=["reasoning", "answer"])
+        
         def correctness_reward_func(completions, answer, **kwargs) -> List[float]:
             responses = [self.parser.parse(c[0]['content']).answer for c in completions]
             return [1.0 if r == a else 0.0 for r, a in zip(responses, answer)]
@@ -23,10 +24,16 @@ class MathRubric:
 
         def format_reward_func(completions, **kwargs) -> list[float]:
             """Reward function that checks if the completion has a specific format."""
-            pattern = r"^<reasoning>\n.*?\n</reasoning>\n<answer>\n.*?\n</answer>\n$"
+            def check_format(text: str) -> float:
+                parsed = self.parser.parse(text)
+                has_correct_format = (
+                    hasattr(parsed, 'reasoning') and parsed.reasoning is not None and 
+                    hasattr(parsed, 'answer') and parsed.answer is not None
+                )
+                return 0.5 if has_correct_format else 0.0
+            
             responses = [c[0]["content"] for c in completions]
-            matches = [re.match(pattern, r, re.DOTALL) for r in responses] 
-            return [0.5 if match else 0.0 for match in matches]
+            return [check_format(r) for r in responses]
 
         self.reward_funcs = [correctness_reward_func, xml_reward_func, format_reward_func]
 

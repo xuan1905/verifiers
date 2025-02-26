@@ -18,7 +18,8 @@ training_args = vf.get_default_grpo_config(
     num_gpus=8
 )
 training_args.gradient_accumulation_steps = 4
-training_args.per_device_train_batch_size = 4
+training_args.per_device_train_batch_size = 2
+training_args.num_generations = 7
 trainer = vf.GRPOEnvTrainer(
     model=model,
     processing_class=tokenizer,

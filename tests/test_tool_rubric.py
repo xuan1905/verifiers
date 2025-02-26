@@ -64,10 +64,10 @@ def test_tool_rubric():
     rubric = ToolRubric()
     
     # Get the direct access to the reward functions
-    correctness_func = rubric._correctness_reward_func
-    xml_func = rubric._xml_reward_func
-    format_func = rubric._format_reward_func
-    tool_execution_func = rubric._tool_execution_reward_func
+    correctness_func = rubric.correctness_reward_func
+    xml_func = rubric.xml_reward_func
+    format_func = rubric.format_reward_func
+    tool_execution_func = rubric.tool_execution_reward_func
     
     # Create sample trajectories
     trajectories = create_sample_trajectories()
@@ -77,8 +77,8 @@ def test_tool_rubric():
     
     # Define expected rewards for each function and trajectory based on actual behavior
     expected_correctness = [1.0, 1.0, 1.0, 1.0]  # All have correct answers
-    expected_xml = [0.3, 0.15, 0.3, 0.3]  # XML scores based on actual implementation
-    expected_format = [0.2, 0.1, 0.2, 0.2]  # Format scores based on actual implementation
+    expected_xml = [0.4, 0.2, 0.4, 0.4]  # XML scores based on tag counting implementation
+    expected_format = [0.2, 0.1, 0.2, 0.2]  # Format scores for proper message structure
     expected_tool_execution = [0.2, 0.0, 0.0, 0.2]  # Tool execution as expected
     
     # Keep track of test results

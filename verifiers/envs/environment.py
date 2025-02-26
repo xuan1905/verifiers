@@ -27,6 +27,5 @@ class Environment(ABC):
                  prompts: List[List[Dict[str, Any]]],
                  llm: LLM,
                  sampling_params: SamplingParams,
-                 output_type: str = "ids",
-                 **kwargs: Any) -> Union[List[Sequence[int]], List[str], List[List[Dict[str, Any]]]]:
+                 **kwargs: Any) -> Dict[str, List[Sequence[int]] | List[str] | List[List[Dict[str, Any]]]]:
         pass
