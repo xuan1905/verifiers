@@ -1,8 +1,6 @@
 # Verifiers: Reinforcement Learning with LLMs in Verifiable Environments
 
-This repository contains a set of tools for reinforcement learning with LLMs in verifiable environments.
-
-For now, it supports the TRL implementation of the GRPO algorithm via a [fork](git@github.com:willccbb/trl.git), and requires [vLLM](https://github.com/vllm-project/vllm/tree/main) for inference.
+This repository contains a set of tools for reinforcement learning with LLMs in verifiable environments. 
 
 ## Installation
 
@@ -21,7 +19,7 @@ You can also use this [gist](https://gist.github.com/kalomaze/37c70e022cb1e9428e
 ```python
 # script.py
 import verifiers as vf
-from trl import GRPOTrainer
+from vf import GRPOEnvTrainer
 
 model_name = "Qwen/Qwen2.5-1.5B-Instruct"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
