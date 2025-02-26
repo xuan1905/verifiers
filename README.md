@@ -1,43 +1,54 @@
 # Verifiers: Reinforcement Learning with LLMs in Verifiable Environments
 
+<<<<<<< HEAD
 This repository contains a set of tools for reinforcement learning with LLMs in verifiable environments.
 
 For now, it supports the TRL implementation of the GRPO algorithm via a fork [(open PR)](https://github.com/willccbb/trl/tree/grpo-envs), and requires [vLLM](https://github.com/vllm-project/vllm/tree/main) for inference.
+=======
+This repository contains a set of tools for reinforcement learning with LLMs in verifiable environments. 
+>>>>>>> dev
 
 ## Installation
 
 PyPI [coming soon](https://pypi.org/project/verifiers/) once a couple more features are added, just clone it for now and run:
 ```
-(uv) pip install -e .
+uv pip install -e .
+uv pip install flash-attn --no-build-isolation
 ```
 Ensure your `wandb` and `huggingface-cli` logins are set up (or set `report_to=None` in `training_args`).
 
-Tested with Python 3.11 and this [image](https://hub.docker.com/layers/pytorch/pytorch/2.5.1-cuda12.1-cudnn9-devel/images/sha256-e8e63dd7baca894ba11fe1ba48a52a550793c8974f89b533d697784dd20a4dc0). If you encounter version issues, please confirm that you are able to run basic TRL training in your environment before opening an issue. `flash-attn` and `liger-kernel` are included for performance reasons. Recommended usage is via `accelerate` with DeepSpeed ZeRO 3 ([example config](https://github.com/huggingface/trl/blob/main/examples/accelerate_configs/deepspeed_zero3.yaml)) but `torchrun` works in my tests as well.
+Tested with Python 3.11 and this [image](https://hub.docker.com/layers/pytorch/pytorch/2.5.1-cuda12.1-cudnn9-devel/images/sha256-e8e63dd7baca894ba11fe1ba48a52a550793c8974f89b533d697784dd20a4dc0). If you encounter version issues, please confirm that you are able to run basic TRL training in your environment before opening an issue. `flash-attn` and `liger-kernel` are used for performance reasons. Recommended usage is via `accelerate` with DeepSpeed ZeRO 3 ([example config](https://github.com/huggingface/trl/blob/main/examples/accelerate_configs/deepspeed_zero3.yaml)) but `torchrun` works in my tests as well.
 
+You can also use this [gist](https://gist.github.com/kalomaze/37c70e022cb1e9428ebb1ee7a4b52275) from (@kalomaze)[https://github.com/kalomaze] to quickly install and run an example script (maybe outdated now). 
 
 ## Usage
 
 ```python
 # script.py
 import verifiers as vf
-from trl import GRPOTrainer
+from verifiers.tools import calculator
+from verifiers.prompts import SEARCH_FEW_SHOT
 
-model_name = "Qwen/Qwen2.5-1.5B-Instruct"
+model_name = "Qwen/Qwen2.5-7B-Instruct"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
-vf_env = vf.DoubleCheckEnv(dataset="gsm8k")
-trainer = GRPOTrainer(
+vf_env = vf.ToolEnv(
+    dataset="gsm8k",
+    few_shot=SEARCH_FEW_SHOT[0],
+    tools=[calculator],
+    max_steps=3
+)
+trainer = vf.GRPOEnvTrainer(
     model=model,
     processing_class=tokenizer,
     env=vf_env,
     reward_funcs=vf_env.get_rubric(),
-    args=vf.get_default_grpo_config(run_name="doublecheck", num_gpus=1),
+    args=vf.get_default_grpo_config(run_name="gsm8k", num_gpus=2),
     train_dataset=vf_env.get_dataset(),
 )
 trainer.train()
-# vf_env.eval(batch_size=32) (coming soon)
 ```
-See `examples` for additional usage examples.
+See `examples` for additional usage examples. 
 
 To create your own multi-step environment, inherit from `MultiStepEnv` and implement:
 ```python
@@ -65,11 +76,10 @@ torchrun --nproc_per_node=[N-1] script.py
 ```
 
 ## Features
-- [X] Environments: `SimpleEnv`, `MathEnv`, `DoubleCheckEnv`, `CodeEnv`
-- [X] Multi-step code execution in `CodeEnv` 
-- [X] Dataset formatting
-- [X] Rubrics for math correctness + response formatting
-- [X] Rubrics for code correctness + response formatting
+- [X] Environments: `SimpleEnv`, `MathEnv`, `DoubleCheckEnv`, `CodeEnv`, `ToolEnv`
+- [X] Multi-step execution in `CodeEnv` and `ToolEnv`
+- [X] Dataset formatting + XML parsers
+- [X] Basic ubrics for math/code correctness + formatting
 - [X] Defaults for GRPO, model, tokenizer, etc.
 
 ## Roadmap

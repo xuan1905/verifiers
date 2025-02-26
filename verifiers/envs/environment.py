@@ -4,10 +4,9 @@ import logging
 
 from datasets import Dataset
 from trl.trainer.grpo_trainer import RewardFunc
-from vllm import LLM, SamplingParams # type: ignore
+from ..imports import LLM, SamplingParams  # type: ignore
 
-
-class BaseEnv(ABC):
+class Environment(ABC):
 
     def __init__(self, **kwargs: Any):
         for key, value in kwargs.items():

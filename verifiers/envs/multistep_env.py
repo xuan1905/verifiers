@@ -4,12 +4,12 @@ from typing import List, Dict, Sequence, Any, Union
 
 from datasets import Dataset
 from trl.trainer.grpo_trainer import RewardFunc
-from vllm import LLM, SamplingParams # type: ignore
+from ..imports import LLM, SamplingParams  # type: ignore
 
-from verifiers.envs.base import BaseEnv
+from verifiers.envs.environment import Environment
 
 
-class MultiStepEnv(BaseEnv):
+class MultiStepEnv(Environment):
     def __init__(self,
                  system_prompt: str = "",
                  few_shot: List[Dict[str, str]] = [],
@@ -18,7 +18,12 @@ class MultiStepEnv(BaseEnv):
         super().__init__(**kwargs)
         self.system_prompt = system_prompt
         self.few_shot = few_shot
-        self.sampling_args = sampling_args
+        self.sampling_args = {
+            "skip_special_tokens": False,
+            "spaces_between_special_tokens": False,
+            "n": 1
+        }
+        self.sampling_args.update(sampling_args)
 
     @abstractmethod
     def get_dataset(self, **kwargs: Any) -> Dataset:
@@ -51,11 +56,11 @@ class MultiStepEnv(BaseEnv):
             states[j]["messages"].append({"role": "assistant", "content": llm_responses[i].outputs[0].text})
         
             # update completion ids
-            states[j]["completion_ids"] = list(llm_responses[i].prompt_token_ids)
+            states[j]["completion_ids"] = list(llm_responses[i].prompt_token_ids) # type: ignore
             states[j]["completion_ids"].extend(list(llm_responses[i].outputs[0].token_ids))
             states[j]["completion_ids"] = states[j]["completion_ids"][len(states[j]["prompt_ids"]):]
             
-            if self.is_completed(states[j]["messages"]) or len(states[j]["completion_ids"]) > sampling_params.max_tokens:
+            if self.is_completed(states[j]["messages"]) or len(states[j]["completion_ids"]) > sampling_params.max_tokens: # type: ignore
                 states[j]["completed"] = True
                 states[j]["completion_ids"] = states[j]["completion_ids"][:sampling_params.max_tokens]
             
