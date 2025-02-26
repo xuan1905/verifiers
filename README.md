@@ -1,12 +1,6 @@
 # Verifiers: Reinforcement Learning with LLMs in Verifiable Environments
 
-<<<<<<< HEAD
-This repository contains a set of tools for reinforcement learning with LLMs in verifiable environments.
-
-For now, it supports the TRL implementation of the GRPO algorithm via a fork [(open PR)](https://github.com/willccbb/trl/tree/grpo-envs), and requires [vLLM](https://github.com/vllm-project/vllm/tree/main) for inference.
-=======
 This repository contains a set of tools for reinforcement learning with LLMs in verifiable environments. 
->>>>>>> dev
 
 ## Installation
 
