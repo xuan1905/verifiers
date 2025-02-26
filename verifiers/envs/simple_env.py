@@ -51,7 +51,7 @@ class SimpleEnv(Environment):
         completions = llm.chat(prompts, sampling_params=custom_sp, use_tqdm=False) # type: ignore
         for i, completion in enumerate(completions):
             states[i]["messages"].append({"role": "assistant", "content": completion.outputs[0].text})
-            states[i]["prompt_ids"] = list(completion.prompt_token_ids)
+            states[i]["prompt_ids"] = list(completion.prompt_token_ids) # type: ignore
             states[i]["completion_ids"] = list(completion.outputs[0].token_ids)
         
         self.logger.debug(f"Prompt 0 IDs: {states[0]['prompt_ids']} \nlen: {len(states[0]['prompt_ids'])}")

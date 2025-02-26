@@ -56,11 +56,11 @@ class MultiStepEnv(Environment):
             states[j]["messages"].append({"role": "assistant", "content": llm_responses[i].outputs[0].text})
         
             # update completion ids
-            states[j]["completion_ids"] = list(llm_responses[i].prompt_token_ids)
+            states[j]["completion_ids"] = list(llm_responses[i].prompt_token_ids) # type: ignore
             states[j]["completion_ids"].extend(list(llm_responses[i].outputs[0].token_ids))
             states[j]["completion_ids"] = states[j]["completion_ids"][len(states[j]["prompt_ids"]):]
             
-            if self.is_completed(states[j]["messages"]) or len(states[j]["completion_ids"]) > sampling_params.max_tokens:
+            if self.is_completed(states[j]["messages"]) or len(states[j]["completion_ids"]) > sampling_params.max_tokens: # type: ignore
                 states[j]["completed"] = True
                 states[j]["completion_ids"] = states[j]["completion_ids"][:sampling_params.max_tokens]
             
