@@ -1,6 +1,6 @@
 import verifiers as vf
 
-model_name = "Qwen/Qwen2.5-Math-1.5B"
+model_name = "Qwen/Qwen2.5-1.5B-Instruct"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
 vf_env = vf.DoubleCheckEnv(dataset="math")
