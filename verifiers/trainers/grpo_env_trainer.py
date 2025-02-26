@@ -62,20 +62,20 @@ class GRPOEnvTrainer(GRPOTrainer):
         )
         self.env = env
 
-    @profiling_decorator
-    def _prepare_inputs(self, inputs: dict[str, Union[torch.Tensor, Any]]) -> dict[str, Union[torch.Tensor, Any]]:
-        mode = "eval" if self.control.should_evaluate else "train"
-        if mode == "train":
-            if self.state.global_step % self.num_iterations == 0:
-                inputs = self._generate_and_score_completions(inputs)
-                self._buffered_inputs[self._step % self.args.gradient_accumulation_steps] = inputs
-            else:
-                inputs = self._buffered_inputs[self._step % self.args.gradient_accumulation_steps]
-            self._step += 1
-        else:
-            # In evaluation, we don't reuse completions across multiple updates, so we don't need to buffer inputs.
-            inputs = self._generate_and_score_completions(inputs)
-        return inputs
+    # @profiling_decorator
+    # def _prepare_inputs(self, inputs: dict[str, Union[torch.Tensor, Any]]) -> dict[str, Union[torch.Tensor, Any]]:
+    #     mode = "eval" if self.control.should_evaluate else "train"
+    #     if mode == "train":
+    #         if self.state.global_step % self.num_iterations == 0:
+    #             inputs = self._generate_and_score_completions(inputs)
+    #             self._buffered_inputs[self._step % self.args.gradient_accumulation_steps] = inputs
+    #         else:
+    #             inputs = self._buffered_inputs[self._step % self.args.gradient_accumulation_steps]
+    #         self._step += 1
+    #     else:
+    #         # In evaluation, we don't reuse completions across multiple updates, so we don't need to buffer inputs.
+    #         inputs = self._generate_and_score_completions(inputs)
+    #     return inputs
 
     def _generate_and_score_completions(
          self, inputs: dict[str, Union[torch.Tensor, Any]]   
@@ -85,7 +85,7 @@ class GRPOEnvTrainer(GRPOTrainer):
         prompts_text = [maybe_apply_chat_template(example, self.processing_class)["prompt"] for example in inputs]
         prompt_inputs = self.processing_class(
             prompts_text, return_tensors="pt", padding=True, padding_side="left", add_special_tokens=False
-        )
+        ) # type: ignore
         prompt_inputs = Trainer._prepare_inputs(self, prompt_inputs)
         prompt_ids, prompt_mask = prompt_inputs["input_ids"], prompt_inputs["attention_mask"]
 

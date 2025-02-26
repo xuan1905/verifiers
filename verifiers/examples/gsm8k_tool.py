@@ -1,15 +1,17 @@
 from trl import GRPOTrainer
 import verifiers as vf
 from verifiers.tools import calculate
+from verifiers.prompts import SEARCH_FEW_SHOT
 
-model_name = "Qwen/Qwen2.5-Math-1.5B"
+model_name = "Qwen/Qwen2.5-Math-1.5B-Instruct"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
 # Initialize tool environment for GSM8K
 vf_env = vf.ToolEnv(
     dataset="gsm8k",
+    few_shot=SEARCH_FEW_SHOT[0],
     tools=[calculate],
-    max_steps=5  # Most GSM8K problems need 2-3 calculation steps
+    max_steps=3
 )
 
 dataset = vf_env.get_dataset()

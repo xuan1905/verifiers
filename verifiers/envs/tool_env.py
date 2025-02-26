@@ -98,7 +98,6 @@ class ToolEnv(MultiStepEnv):
         self.rubric = ToolRubric()
         self.llm_parser = XMLParser(fields=["reasoning", ("tool", "answer")])
         self.env_parser = XMLParser(fields=["result"])
-        self.step_count = 0
 
     def get_dataset(self, **kwargs: Any) -> Dataset:
         return self.dataset
@@ -106,10 +105,34 @@ class ToolEnv(MultiStepEnv):
     def get_rubric(self, **kwargs: Any) -> List[RewardFunc]:
         return self.rubric.get_reward_funcs()
     
+    def _get_step_count(self, messages: List[Dict[str, str]]) -> int:
+        """Count the number of tool uses in the message history, excluding few-shot examples."""
+        step_count = 0
+        
+        # Skip messages that are part of few-shot examples
+        # We need to determine where the actual conversation starts
+        # System message + few-shot examples + user query = start of actual conversation
+        conversation_start = 1  # Start after system message
+        if self.few_shot:
+            # Account for all few-shot messages
+            conversation_start += len(self.few_shot)
+        
+        # Only count tool uses from the actual conversation
+        for message in messages[conversation_start:]:
+            if message.get("role") == "assistant":
+                try:
+                    parsed = self.llm_parser.parse(message["content"])
+                    if hasattr(parsed, 'tool') and parsed.tool is not None:
+                        step_count += 1
+                except Exception:
+                    pass
+        return step_count
+    
     def is_completed(self, messages: List[Dict[str, str]], **kwargs: Any) -> bool:
         try:
-            # Check if we've hit max steps
-            if self.step_count >= self.max_steps:
+            # Check if we've hit max steps by counting tool uses in the message history
+            step_count = self._get_step_count(messages)
+            if step_count >= self.max_steps:
                 return True
             
             parsed = self.llm_parser.parse(messages[-1]["content"])
@@ -148,7 +171,6 @@ class ToolEnv(MultiStepEnv):
             parsed = self.llm_parser.parse(messages[-1]["content"])
             # Check if we got a valid tool field (not just None from failed parsing)
             if hasattr(parsed, 'tool') and parsed.tool is not None:
-                self.step_count += 1
                 result = self.execute_tool(parsed.tool)
                 if len(result.strip()) > 0:
                     return {"role": "user", "content": self.env_parser.format(result=result)}

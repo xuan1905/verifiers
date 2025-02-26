@@ -1,4 +1,5 @@
 import random
+import json
 from typing import List, Dict
 
 from datasets import Dataset, load_dataset # type: ignore
@@ -62,6 +63,25 @@ def preprocess_dataset(dataset_name: str = "gsm8k",
         dataset = dataset.map(lambda x: {
             "prompt": format_prompt(x["problem"], system_prompt, few_shot, fewshot_prob),
             "answer": extract_boxed_answer(x["solution"])
+        })
+        return dataset
+    elif dataset_name == "openbookqa":
+        dataset: Dataset = load_dataset("allenai/openbookqa", "main")[split] # type: ignore
+        
+        def format_question(example):
+            choices_texts = example['choices']['text']
+            choices_labels = example['choices']['label']
+            
+            formatted_choices = []
+            for i in range(len(choices_labels)):
+                formatted_choices.append(f"{choices_labels[i]}. {choices_texts[i]}")
+            
+            question = f"Question: {example['question_stem']}\n\nChoices:\n" + "\n".join(formatted_choices)
+            return question
+        
+        dataset = dataset.map(lambda x: {
+            "prompt": format_prompt(format_question(x), system_prompt + "\n\nReturn only the letter of the correct answer.", few_shot, fewshot_prob),
+            "answer": x["answerKey"]
         })
         return dataset
     else:
