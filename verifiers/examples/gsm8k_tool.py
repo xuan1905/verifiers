@@ -1,4 +1,3 @@
-from trl import GRPOTrainer
 import verifiers as vf
 from verifiers.tools import calculate
 from verifiers.prompts import SEARCH_FEW_SHOT
@@ -21,7 +20,7 @@ training_args = vf.get_default_grpo_config(
     num_gpus=8
 )
 
-trainer = GRPOTrainer(
+trainer = vf.GRPOEnvTrainer(
     model=model,
     processing_class=tokenizer,
     reward_funcs=rubric,
