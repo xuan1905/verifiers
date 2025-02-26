@@ -6,10 +6,10 @@ from datasets import Dataset
 from trl.trainer.grpo_trainer import RewardFunc
 from ..imports import LLM, SamplingParams  # type: ignore
 
-from verifiers.envs.base import BaseEnv
+from verifiers.envs.environment import Environment
 
 
-class MultiStepEnv(BaseEnv):
+class MultiStepEnv(Environment):
     def __init__(self,
                  system_prompt: str = "",
                  few_shot: List[Dict[str, str]] = [],
@@ -18,7 +18,12 @@ class MultiStepEnv(BaseEnv):
         super().__init__(**kwargs)
         self.system_prompt = system_prompt
         self.few_shot = few_shot
-        self.sampling_args = sampling_args
+        self.sampling_args = {
+            "skip_special_tokens": False,
+            "spaces_between_special_tokens": False,
+            "n": 1
+        }
+        self.sampling_args.update(sampling_args)
 
     @abstractmethod
     def get_dataset(self, **kwargs: Any) -> Dataset:

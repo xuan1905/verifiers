@@ -4,23 +4,24 @@ from typing import List, Dict, Sequence, Any, Union
 
 from ..imports import LLM, SamplingParams  # type: ignore
 
-from verifiers.envs.base import BaseEnv
+from verifiers.envs.environment import Environment
 
 
-class SimpleEnv(BaseEnv):
+class SimpleEnv(Environment):
     def __init__(self,
                  system_prompt: str = "",
                  few_shot: List[Dict[str, str]] = [],
                  sampling_args: Dict[str, Any] = {},
                  **kwargs):
         super().__init__(**kwargs)
-        sampling_args = {
-            "skip_special_tokens": False,
-            "spaces_between_special_tokens": False,
-        }
         self.system_prompt = system_prompt
         self.few_shot = few_shot
-        self.sampling_args = sampling_args
+        self.sampling_args = {
+            "skip_special_tokens": False,
+            "spaces_between_special_tokens": False,
+            "n": 1
+        }
+        self.sampling_args.update(sampling_args)
 
     def format_prompt(self, prompt: str, fewshot_prob: float = 1.0) -> List[Dict[str, str]]:
         messages = []
@@ -37,10 +38,9 @@ class SimpleEnv(BaseEnv):
                  output_type: str = "ids",
                  **kwargs: Any) -> Union[List[Sequence[int]], List[str], List[List[Dict[str, Any]]]]:
         
-        custom_sp = sampling_params.clone()
+        custom_sp = sampling_params.clone() 
         for k, v in self.sampling_args.items():
             setattr(custom_sp, k, v)
-
         states = [{
             "messages": m,
             "prompt_ids": [],

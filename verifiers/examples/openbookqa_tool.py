@@ -1,8 +1,7 @@
-from trl import GRPOTrainer
 import verifiers as vf
 from verifiers.tools import search
 
-model_name = "Qwen/Qwen2.5-Math-1.5B"  # Could also use a model more focused on science/QA
+model_name = "Qwen/Qwen2.5-7B-Instruct"  # Could also use a model more focused on science/QA
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
 # Initialize tool environment for OpenBookQA
@@ -18,14 +17,11 @@ rubric = vf_env.get_rubric()
 
 # Configure training
 training_args = vf.get_default_grpo_config(
-    run_name="openbookqa_search_qwen2.5-m-1.5b",
-    num_gpus=8,
-    eval_steps=100,  # More frequent eval since dataset is smaller
-    save_steps=100
+    run_name="openbookqa_search_qwen2.5-7b"
 )
 
 # Initialize trainer
-trainer = GRPOTrainer(
+trainer = vf.GRPOEnvTrainer(
     model=model,
     processing_class=tokenizer,
     reward_funcs=rubric,
