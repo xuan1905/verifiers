@@ -80,7 +80,7 @@ def preprocess_dataset(dataset_name: str = "gsm8k",
             return question
         
         dataset = dataset.map(lambda x: {
-            "prompt": format_prompt(format_question(x), system_prompt + "\n\nReturn only the letter of the correct answer.", few_shot, fewshot_prob),
+            "prompt": format_prompt(format_question(x), str(system_prompt) + "\n\nReturn only the letter of the correct answer.", few_shot, fewshot_prob),
             "answer": x["answerKey"]
         })
         return dataset
