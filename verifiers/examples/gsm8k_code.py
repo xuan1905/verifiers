@@ -1,5 +1,5 @@
 import verifiers as vf
-from verifiers.prompts.system_prompts import CODE_PROMPT
+from verifiers.prompts import CODE_PROMPT
 
 model_name = "Qwen/Qwen2.5-7B-Instruct"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
@@ -10,12 +10,16 @@ eval_dataset = vf_env.get_eval_dataset(n=100)
 rubric = vf_env.get_rubric()
 
 # notable defaults: lr = 1e-6, max_grad_norm = 0.01, constant lr 10 warmup steps, 1024 tokens in+out
-training_args = vf.get_default_grpo_config(run_name="gsm8k_qwen2.5-7b", num_gpus=8)
+run_name = "gsm8k-code_" + model_name.split("/")[-1].lower()
+training_args = vf.get_default_grpo_config(
+    run_name=run_name,
+    num_gpus=8 # 7 train + 1 inference
+)
 # rollouts per prompt
 training_args.num_generations = 7
-# minibatch size per GPU ( bs 6 * 7 gpus / 7 rollouts -> 8 prompts per batch)
-training_args.per_device_train_batch_size = 8
-# batches to accumulate (8 prompts * 4 -> 32 prompts per global batch)
+# minibatch size per GPU ( bs 6 * 7 gpus / 7 rollouts -> 6 prompts per batch)
+training_args.per_device_train_batch_size = 6
+# batches to accumulate (6 prompts * 4 -> 24 prompts per global batch)
 training_args.gradient_accumulation_steps = 4
 # steps per global batch (1 on-policy, 1 off-policy)
 training_args.num_iterations = 2
