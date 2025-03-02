@@ -13,13 +13,11 @@ from transformers import (
 )
 from transformers.utils import is_peft_available
 from trl import GRPOTrainer, GRPOConfig
-from trl.data_utils import is_conversational, apply_chat_template, maybe_apply_chat_template
-from trl.extras.profiling import profiling_decorator
+from trl.data_utils import apply_chat_template, maybe_apply_chat_template
 from trl.import_utils import is_rich_available
 from trl.trainer.utils import pad
 
 from verifiers.envs.environment import Environment
-from verifiers.imports import SamplingParams
 from verifiers.utils.logging_utils import print_prompt_completions_sample
 
 if is_peft_available():
