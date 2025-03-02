@@ -33,6 +33,6 @@ trainer = vf.GRPOEnvTrainer(
     env=vf_env,
     args=training_args,
     train_dataset=dataset,
-    eval_dataset=eval_dataset,
+    eval_dataset=eval_dataset
 )
 trainer.train()

@@ -22,6 +22,7 @@ class CodeEnv(MultiStepEnv):
             few_shot=few_shot,
             mask_env_response=mask_env_response
         )
+        self.dataset_name = dataset
         self.dataset = preprocess_dataset(
             dataset_name=dataset,
             split="train",
@@ -36,7 +37,14 @@ class CodeEnv(MultiStepEnv):
     def get_dataset(self, **kwargs: Any) -> Dataset:
         return self.dataset
     
-    def get_eval_dataset(self, **kwargs: Any) -> Dataset | None:
+    def get_eval_dataset(self, **kwargs: Any) -> Dataset:
+        if self.eval_dataset is None:
+            self.eval_dataset = preprocess_dataset(
+                dataset_name=self.dataset_name,
+                split="test",
+                system_prompt=self.system_prompt,
+                few_shot=self.few_shot
+            )
         return self.eval_dataset
     
     def get_rubric(self, **kwargs: Any) -> List[RewardFunc]:
@@ -58,7 +66,7 @@ class CodeEnv(MultiStepEnv):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=10,
-                text=True  # Automatically decodes stdout/stderr to str
+                text=True
             )
             if result.stderr:
                 return f"Error: {result.stderr.strip()}"
