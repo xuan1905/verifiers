@@ -71,41 +71,46 @@ class ToolRubric:
 
         return [count_xml(c) for c in completions]
 
-    def format_reward_func(self, completions: List[List[Dict[str, str]]], **kwargs) -> List[float]:
+    def format_reward_func(self, completions, **kwargs) -> List[float]:
         """Reward function that checks if each step follows the expected format."""
         def check_format(trajectory):
-            model_messages = self.get_assistant_messages(trajectory)
+            model_messages = [msg for msg in trajectory if msg['role'] == 'assistant']
             if not model_messages:
                 return 0.0
             
-            first_format_correct = False
-            if model_messages:
-                first_msg = model_messages[0]['content']
-                first_format_correct = first_msg.startswith("<reasoning>")
-            
-            improving_format = False
+            # Calculate format adherence for each message
             format_scores = []
-            
-            for i, msg in enumerate(model_messages):
-                parsed = self.parser.parse(msg['content'])
-                
-                # Check if it has correct format
+            for msg in model_messages:
+                content = msg['content']
+                parsed = self.parser.parse(content)
+                parsed_no_strip = self.parser.parse(content, strip=False)
+                starts_with_reasoning = content.strip().startswith("<reasoning>")
+                ends_with_answer = content.strip().endswith("</answer>")
+                ends_with_tool = content.strip().endswith("</tool>")
+                # Message has correct format if it has reasoning and either tool or answer
                 has_correct_format = (
-                    hasattr(parsed, 'reasoning') and parsed.reasoning is not None and 
+                    hasattr(parsed, 'reasoning') and parsed.reasoning is not None and
                     ((hasattr(parsed, 'tool') and parsed.tool is not None) or 
-                     (hasattr(parsed, 'answer') and parsed.answer is not None))
+                        (hasattr(parsed, 'answer') and parsed.answer is not None))
                 )
-                format_scores.append(1.0 if has_correct_format else 0.0)
-                
-                # Check if format improves after initial incorrect format
-                if i > 0 and not first_format_correct and has_correct_format:
-                    improving_format = True
+                has_correct_spacing = (
+                    has_correct_format and
+                    (
+                        (hasattr(parsed_no_strip, 'reasoning') and parsed_no_strip.reasoning is not None and
+                            (hasattr(parsed_no_strip, 'tool') and parsed_no_strip.tool is not None or
+                            hasattr(parsed_no_strip, 'answer') and parsed_no_strip.answer is not None))
+                    )
+                )
+                format_score = 0.4 if has_correct_format else 0.0
+                if has_correct_spacing:
+                    format_score += 0.2
+                if starts_with_reasoning:
+                    format_score += 0.2
+                if ends_with_answer or ends_with_tool:
+                    format_score += 0.2
+                format_scores.append(format_score)
             
-            # If format improves over time (starts incorrect, ends correct), 
-            # give lower partial credit
-            if not first_format_correct and improving_format:
-                return 0.1
-            
+            # Return average format adherence, weighted by number of steps
             if not format_scores:
                 return 0.0
             return 0.2 * (sum(format_scores) / len(format_scores))
