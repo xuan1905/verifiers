@@ -8,9 +8,12 @@ PyPI [coming soon](https://pypi.org/project/verifiers/) once a couple more featu
 ```
 git clone https://github.com/willccbb/verifiers.git
 cd verifiers
-uv pip install -e .
+uv sync
 uv pip install flash-attn --no-build-isolation
+source .venv/bin/activate
+accelerate launch --config-file configs/zero3.yaml --num-processes [N-1] verifiers/examples/gsm8k_calculator.py
 ```
+
 
 Ensure your `wandb` and `huggingface-cli` logins are set up (or set `report_to=None` in `training_args`).
 
