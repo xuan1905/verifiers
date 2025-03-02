@@ -77,9 +77,12 @@ class ToolEnv(MultiStepEnv):
                  tools: List[Callable] = [],
                  system_prompt: str = DEFAULT_TOOL_PROMPT_TEMPLATE,
                  few_shot: List[Dict[str, str]] = [],
+                 sampling_args={
+                     "stop": ["</tool>", "</answer>"],
+                     "include_stop_str_in_output": True
+                 },
                  mask_env_response: bool = True,
-                 max_steps: int = 10,
-                 sampling_args: Dict[str, Any] = {}):
+                 max_steps: int = 10, **kwargs):
         # Infer schemas from tool functions
         self.tool_schemas = [infer_schema_from_function(tool) for tool in tools]
         self.tools = {tool.__name__: tool for tool in tools}
@@ -92,7 +95,8 @@ class ToolEnv(MultiStepEnv):
             system_prompt=formatted_prompt,
             few_shot=few_shot,
             mask_env_response=mask_env_response,
-            sampling_args=sampling_args
+            sampling_args=sampling_args,
+            **kwargs
         )
         self.dataset_name = dataset
         self.dataset = preprocess_dataset(

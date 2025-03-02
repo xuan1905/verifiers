@@ -12,15 +12,21 @@ from verifiers.utils import preprocess_dataset
 
 class CodeEnv(MultiStepEnv):
     def __init__(self,
-                 dataset: str = "gsm8k",
-                 max_steps: int = 10,
+                 dataset: str = "gsm8k",        
                  system_prompt: str = CODE_PROMPT,
                  few_shot: List[Dict[str, str]] = CODE_FEW_SHOT[0],
-                 mask_env_response: bool = True):
+                 sampling_args: Dict[str, Any] = {
+                     "stop": ["</code>", "</answer>"],
+                     "include_stop_str_in_output": True
+                 },
+                 mask_env_response: bool = True, 
+                 max_steps: int = 5, **kwargs):
         super().__init__(
             system_prompt=system_prompt,
             few_shot=few_shot,
-            mask_env_response=mask_env_response
+            mask_env_response=mask_env_response,
+            sampling_args=sampling_args,
+            **kwargs
         )
         self.dataset_name = dataset
         self.dataset = preprocess_dataset(
@@ -30,9 +36,10 @@ class CodeEnv(MultiStepEnv):
             few_shot=few_shot
         )
         self.eval_dataset = None
-        self.rubric = CodeRubric()
+        self.max_steps = max_steps
         self.llm_parser = XMLParser(fields=["reasoning", ("code", "answer")])
         self.env_parser = XMLParser(fields=["output"])
+        self.rubric = CodeRubric(parser=self.llm_parser, env_parser=self.env_parser)
 
     def get_dataset(self, **kwargs: Any) -> Dataset:
         return self.dataset

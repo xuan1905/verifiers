@@ -1,14 +1,14 @@
-import re
-from typing import List, Callable, Dict, Any
-from trl.trainer.grpo_trainer import RewardFunc
+from typing import List, Dict
 
 from verifiers.parsers import XMLParser
 from verifiers.rubrics import Rubric
 
 class ToolRubric(Rubric):
-    def __init__(self):
-        self.parser = XMLParser(fields=["reasoning", ("tool", "answer")])
-        self.env_parser = XMLParser(fields=["result"])
+    def __init__(self,
+                 parser: XMLParser = XMLParser(fields=["reasoning", ("tool", "answer")]),
+                 env_parser: XMLParser = XMLParser(fields=["result"])):
+        self.parser = parser
+        self.env_parser = env_parser
         self.reward_funcs = [
             self.exact_answer_reward_func,
             self.tool_execution_reward_func,
@@ -19,7 +19,7 @@ class ToolRubric(Rubric):
     def tool_execution_reward_func(self, completions: List[List[Dict[str, str]]], **kwargs) -> List[float]:
         """
         Reward function that checks tool execution success.
-        
+
         Uses XMLParser to identify proper tool calls.
         """
         def check_execution(trajectory):

@@ -1,14 +1,14 @@
-import re
 from typing import List, Dict
-from trl.trainer.grpo_trainer import RewardFunc
 
 from verifiers.parsers import XMLParser
 from verifiers.rubrics import Rubric
 
 class CodeRubric(Rubric):
-    def __init__(self):
-        self.parser = XMLParser(fields=["reasoning", ("code", "answer")])
-        self.env_parser = XMLParser(fields=["output"])
+    def __init__(self,
+                 parser: XMLParser = XMLParser(fields=["reasoning", ("code", "answer")]),
+                 env_parser: XMLParser = XMLParser(fields=["output"])):
+        self.parser = parser
+        self.env_parser = env_parser
         self.reward_funcs = [
             self.exact_answer_reward_func,
             self.int_answer_reward_func,
