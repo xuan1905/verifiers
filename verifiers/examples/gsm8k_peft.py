@@ -10,7 +10,7 @@ eval_dataset = vf_env.get_eval_dataset(n=20)
 rubric = vf_env.get_rubric()
 
 # notable defaults: lr = 1e-6, max_grad_norm = 0.01, constant lr 10 warmup steps, 1024 tokens in+out
-run_name = "gsm8k-code_" + model_name.split("/")[-1].lower()
+run_name = "gsm8k-code-peft_" + model_name.split("/")[-1].lower()
 training_args = vf.get_default_grpo_config(run_name=run_name, num_gpus=8)
 # rollouts per prompt
 training_args.num_generations = 7

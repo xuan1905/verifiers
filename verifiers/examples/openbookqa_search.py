@@ -15,8 +15,9 @@ train_dataset = vf_env.get_dataset()
 rubric = vf_env.get_rubric()
 
 # notable defaults: lr = 1e-6, max_grad_norm = 0.01, constant lr 10 warmup steps, 1024 tokens in+out
+run_name = "obqa-search_" + model_name.split("/")[-1].lower()
 training_args = vf.get_default_grpo_config(
-    run_name="openbookqa_search_qwen2.5-7b",
+    run_name=run_name,
     num_gpus=8 # 7 train + 1 inference
 )
 # rollouts per prompt
