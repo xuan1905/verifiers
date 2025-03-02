@@ -69,7 +69,7 @@ class XMLParser:
             parts.append(f"<{canonical}>\n{value}\n</{canonical}>")
         return "\n".join(parts)
     
-    def parse(self, text: str) -> Any:
+    def parse(self, text: str, strip: bool = True) -> Any:
         """
         Parse the given XML string and return an object with attributes corresponding
         to all allowed tags in the schema.
@@ -91,7 +91,7 @@ class XMLParser:
                 pattern = rf"<{alt}>\s*(.*?)\s*</{alt}>"
                 match = re.search(pattern, text, re.DOTALL)
                 if match:
-                    results[alt] = match.group(1).strip()
+                    results[alt] = match.group(1).strip() if strip else match.group(1)
                 else:
                     results[alt] = None
         return SimpleNamespace(**results)

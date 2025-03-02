@@ -76,13 +76,32 @@ class CodeRubric:
                 for msg in model_messages:
                     content = msg['content']
                     parsed = self.parser.parse(content)
+                    parsed_no_strip = self.parser.parse(content, strip=False)
+                    starts_with_reasoning = content.strip().startswith("<reasoning>")
+                    ends_with_answer = content.strip().endswith("</answer>")
+                    ends_with_code = content.strip().endswith("</code>")
                     # Message has correct format if it has reasoning and either code or answer
                     has_correct_format = (
                         hasattr(parsed, 'reasoning') and parsed.reasoning is not None and
                         ((hasattr(parsed, 'code') and parsed.code is not None) or 
                          (hasattr(parsed, 'answer') and parsed.answer is not None))
                     )
-                    format_scores.append(1.0 if has_correct_format else 0.0)
+                    has_correct_spacing = (
+                        has_correct_format and
+                        (
+                            (hasattr(parsed_no_strip, 'reasoning') and parsed_no_strip.reasoning is not None and
+                             (hasattr(parsed_no_strip, 'code') and parsed_no_strip.code is not None or
+                              hasattr(parsed_no_strip, 'answer') and parsed_no_strip.answer is not None))
+                        )
+                    )
+                    format_score = 0.4 if has_correct_format else 0.0
+                    if has_correct_spacing:
+                        format_score += 0.2
+                    if starts_with_reasoning:
+                        format_score += 0.2
+                    if ends_with_answer or ends_with_code:
+                        format_score += 0.2
+                    format_scores.append(format_score)
                 
                 # Return average format adherence, weighted by number of steps
                 if not format_scores:
@@ -114,7 +133,7 @@ class CodeRubric:
                 # Return proportional reward based on successful executions
                 if total_code_steps == 0:
                     return 0.0
-                return 0.2 * (successful_executions / total_code_steps)
+                return 0.3 * (successful_executions / total_code_steps) + 0.05 * (successful_executions)
             
             return [check_execution(c) for c in completions]
 

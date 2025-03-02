@@ -36,6 +36,9 @@ class CodeEnv(MultiStepEnv):
     def get_dataset(self, **kwargs: Any) -> Dataset:
         return self.dataset
     
+    def get_eval_dataset(self, **kwargs: Any) -> Dataset | None:
+        return self.eval_dataset
+    
     def get_rubric(self, **kwargs: Any) -> List[RewardFunc]:
         return self.rubric.get_reward_funcs()
     

@@ -67,7 +67,7 @@ class ToolRubric:
             # Return average XML score
             if not xml_scores:
                 return 0.0
-            return 0.1 * (sum(xml_scores) / len(xml_scores))
+            return 0.2 * (sum(xml_scores) / len(xml_scores))
 
         return [count_xml(c) for c in completions]
 
@@ -78,7 +78,6 @@ class ToolRubric:
             if not model_messages:
                 return 0.0
             
-            # Track whether format improves over conversation
             first_format_correct = False
             if model_messages:
                 first_msg = model_messages[0]['content']
@@ -134,7 +133,7 @@ class ToolRubric:
                             tool_attempts += 1
                             # Check response with env_parser
                             parsed_response = self.env_parser.parse(trajectory[i + 1]['content'])
-                            if hasattr(parsed_response, 'result') and parsed_response.result is not None:
+                            if hasattr(parsed_response, 'result') and parsed_response.result is not None and not parsed_response.result.startswith("Error:"):
                                 successful_executions += 1
             
             # Calculate reward

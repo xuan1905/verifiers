@@ -78,7 +78,8 @@ class ToolEnv(MultiStepEnv):
                  system_prompt: str = DEFAULT_TOOL_PROMPT_TEMPLATE,
                  few_shot: List[Dict[str, str]] = [],
                  mask_env_response: bool = True,
-                 max_steps: int = 10):
+                 max_steps: int = 10,
+                 sampling_args: Dict[str, Any] = {}):
         # Infer schemas from tool functions
         self.tool_schemas = [infer_schema_from_function(tool) for tool in tools]
         self.tools = {tool.__name__: tool for tool in tools}
@@ -90,8 +91,10 @@ class ToolEnv(MultiStepEnv):
         super().__init__(
             system_prompt=formatted_prompt,
             few_shot=few_shot,
-            mask_env_response=mask_env_response
+            mask_env_response=mask_env_response,
+            sampling_args=sampling_args
         )
+        self.dataset_name = dataset
         self.dataset = preprocess_dataset(
             dataset_name=dataset,
             split="train",
@@ -106,6 +109,18 @@ class ToolEnv(MultiStepEnv):
 
     def get_dataset(self, **kwargs: Any) -> Dataset:
         return self.dataset
+    
+    def get_eval_dataset(self, n: int = -1, **kwargs: Any) -> Dataset | None:
+        if self.eval_dataset is None:
+            self.eval_dataset = preprocess_dataset(
+                dataset_name=self.dataset_name,
+                split="test",
+                system_prompt=self.system_prompt,
+                few_shot=self.few_shot
+            )
+        if n > 0:
+            return self.eval_dataset.shuffle().select(range(n)) # type: ignore
+        return self.eval_dataset
     
     def get_rubric(self, **kwargs: Any) -> List[RewardFunc]:
         return self.rubric.get_reward_funcs()

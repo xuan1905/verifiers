@@ -13,6 +13,10 @@ class MathRubric:
             responses = [self.parser.parse(c[0]['content']).answer for c in completions]
             return [1.0 if r == a else 0.0 for r, a in zip(responses, answer)]
 
+        def int_reward_func(completions, **kwargs) -> List[float]:
+            responses = [self.parser.parse(c[0]['content']).answer for c in completions]
+            return [0.5 if str(r).isdigit() else 0.0 for r in responses]
+
         def xml_reward_func(completions, **kwargs) -> List[float]:
             def count_xml(text: str) -> float:
                 count = 0
@@ -35,7 +39,7 @@ class MathRubric:
             responses = [c[0]["content"] for c in completions]
             return [check_format(r) for r in responses]
 
-        self.reward_funcs = [correctness_reward_func, xml_reward_func, format_reward_func]
+        self.reward_funcs = [correctness_reward_func, int_reward_func, xml_reward_func, format_reward_func]
 
     def get_reward_funcs(self) -> List[RewardFunc]:
         return self.reward_funcs # type: ignore
