@@ -1,7 +1,8 @@
 import verifiers as vf
 from verifiers.prompts import CODE_PROMPT
 
-model_name = "Qwen/Qwen2.5-7B-Instruct"
+# model_name = "Qwen/Qwen2.5-7B-Instruct"
+model_name = "Qwen/Qwen2.5-3B-Instruct"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
 vf_env = vf.CodeEnv(dataset="gsm8k", few_shot=[], system_prompt=CODE_PROMPT)

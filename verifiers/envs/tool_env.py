@@ -85,7 +85,9 @@ class ToolEnv(MultiStepEnv):
                  max_steps: int = 10, **kwargs):
         # Infer schemas from tool functions
         self.tool_schemas = [infer_schema_from_function(tool) for tool in tools]
+        # print(self.tool_schemas)
         self.tools = {tool.__name__: tool for tool in tools}
+        # print(self.tools)
         
         # Format the system prompt with tool descriptions
         tool_descriptions = format_tool_descriptions(self.tool_schemas)

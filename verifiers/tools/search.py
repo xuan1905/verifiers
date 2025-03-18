@@ -16,6 +16,7 @@ def search_ddg(query: str, num_results: int = 5) -> str:
     try:
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=min(num_results, 10)))
+            time.sleep(1)
             if not results:
                 return "No results found"
 

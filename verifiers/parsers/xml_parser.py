@@ -255,3 +255,32 @@ class XMLParser:
                 else:
                     results[alt] = None
         return SimpleNamespace(**results)
+
+    # def parse(self, text: str, strip: bool = True) -> Any:
+    #     """
+    #     Parse the given XML string and return an object with attributes corresponding
+    #     to all allowed tags in the schema.
+        
+    #     For each field defined:
+    #       - If it is a simple field (e.g. 'reasoning'), the output object will have
+    #         an attribute 'reasoning' set to the text content (or None if missing).
+    #       - If it is defined with alternatives (e.g. ("code", "answer")), the output
+    #         object will have attributes for *each* allowed tag name. For example,
+    #         if the schema is ['reasoning', ('code', 'answer')], then both
+    #         `result.code` and `result.answer` are always accessible. If a tag is not
+    #         found in the XML, its corresponding attribute is set to None.
+            
+    #     Handles nested tags by capturing the outermost occurrence of each tag.
+    #     """
+    #     results: Dict[str, Optional[str]] = {}
+    #     for canonical, alternatives in self._fields:
+    #         # For each allowed alternative tag, search independently.
+    #         for alt in alternatives:
+    #             # Regex pattern to capture content between outermost matching tags
+    #             pattern = rf"<{alt}>((?:(?!<{alt}>|</{alt}>).|\s)*(?:<{alt}>(?:(?!<{alt}>|</{alt}>).|\s)*</{alt}>)*(?:(?!<{alt}>|</{alt}>).|\s)*)</{alt}>"
+    #             match = re.search(pattern, text, re.DOTALL)
+    #             if match:
+    #                 results[alt] = match.group(1).strip() if strip else match.group(1)
+    #             else:
+    #                 results[alt] = None
+    #     return SimpleNamespace(**results)

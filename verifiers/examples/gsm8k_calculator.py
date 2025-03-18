@@ -20,12 +20,12 @@ rubric = vf_env.get_rubric()
 run_name = "gsm8k-calc_" + model_name.split("/")[-1].lower()
 training_args = vf.get_default_grpo_config(
     run_name=run_name,
-    num_gpus=8
+    num_gpus=4
 )
 # rollouts per prompt
-training_args.num_generations = 7
+training_args.num_generations = 8
 # minibatch size per GPU ( bs 6 * 7 gpus / 7 rollouts -> 6 prompts per batch)
-training_args.per_device_train_batch_size = 6
+training_args.per_device_train_batch_size = 8
 # batches to accumulate (6 prompts * 4 -> 32 prompts per global batch)
 training_args.gradient_accumulation_steps = 4
 # steps per global batch (1 on-policy, 1 off-policy)
