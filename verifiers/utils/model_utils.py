@@ -1,6 +1,7 @@
 from importlib.util import find_spec
 from typing import Dict, Any, Union, Tuple
-
+# import unsloth
+# from unsloth import FastLanguageModel
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -19,6 +20,15 @@ def get_model(model_name: str, model_kwargs: Union[Dict[str, Any], None] = None)
         print("Using Liger kernel")
         from liger_kernel.transformers import AutoLigerKernelForCausalLM # type: ignore
         return AutoLigerKernelForCausalLM.from_pretrained(model_name, **model_kwargs)
+        # print("Using Unsloth")
+        # return FastLanguageModel.from_pretrained(model_name, 
+        #                                          fast_inference = True,
+        #                                          full_finetuning = True,
+        #                                          dtype = torch.bfloat16,
+        #                                         #  load_in_4bit = False,
+        #                                         #  load_in_8bit = False,
+        #                                         #  **model_kwargs
+        #                                          )
     else:
         return AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
     

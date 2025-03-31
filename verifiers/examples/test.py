@@ -2,20 +2,27 @@ import verifiers as vf
 from verifiers.tools import calculator, mean
 from verifiers.prompts import CALCULATOR_FEW_SHOT
 import time
-# model_name = "Qwen/Qwen2.5-7B-Instruct"
-model_name = "/home/richard/verifiers/outputs/bfcl-qwen2.5-7b-instruct-3-turns/checkpoint-600"
+# from unsloth import FastLanguageModel
+model_name = "Qwen/Qwen2.5-7B-Instruct"
+# model_name = "/root/richard/test/verifiers/outputs/bfcl-qwen2.5-7b-instruct-1-turns-dr-grpo/checkpoint-800"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
-NUM_GPUS = 8
+NUM_GPUS = 4
+PER_DEVICE_BATCH_SIZE = 8
+NUM_GENERATIONS = 8
+# (NUM_GPUS - 1) * PER_DEVICE_BATCH_SIZE / NUM_GENERATIONS = NUM PROMPT PER DEVICE
+EVAL_DATASET_SIZE = 100
 MAX_STEPS_PER_TURN = 5
 CURRICULUM_LEARNING = True
 MAX_TURNS_ONLY = True
-MAX_NUM_TURNS = 10 # 4 turns is almost max
+MAX_NUM_TURNS = 1 # 4 turns is almost max
 DEBUG_GENERATE = False
 DEBUG_REWARDS = False
-PER_DEVICE_BATCH_SIZE = 2
-EVAL_STEPS = 100
-SAVE_STEPS = 100
+EVAL_STEPS = 50
+SAVE_STEPS = 50
+NUM_EPOCHS = 100
+USE_DR_GRPO = True
+USE_LATEST_TRL = False
 # if DEBUG_GENERATE or DEBUG_REWARDS:
 #     NUM_GPUS = 2
 #     MAX_STEPS_PER_TURN = 5
@@ -28,10 +35,13 @@ vf_env = vf.BfclEnv(
     max_num_turns=MAX_NUM_TURNS,
     max_steps_per_turn=MAX_STEPS_PER_TURN,
     curriculum_learning=CURRICULUM_LEARNING,
+    use_latest_trl=USE_LATEST_TRL,
 )
 
 train_dataset = vf_env.get_dataset(max_num_turns=MAX_NUM_TURNS)
-eval_dataset = vf_env.get_eval_dataset(max_num_turns=MAX_NUM_TURNS, max_turn_only=MAX_TURNS_ONLY, n=10)
+eval_dataset = vf_env.get_eval_dataset(max_num_turns=MAX_NUM_TURNS, max_turn_only=MAX_TURNS_ONLY, 
+                                    #    n=EVAL_DATASET_SIZE
+                                       )
 # train_dataset = train_dataset.select(range(0,10))
 # eval_dataset = eval_dataset.select(range(0,20))
 print(train_dataset)
@@ -43,6 +53,12 @@ rubric = vf_env.get_rubric()
 
 # notable defaults: lr = 1e-6, max_grad_norm = 0.01, constant lr 10 warmup steps, 1024 tokens in+out
 run_name = "bfcl-" + model_name.split("/")[-1].lower() + f"-{MAX_NUM_TURNS}-turns"
+if USE_LATEST_TRL:
+    run_name += "-latest-trl"
+if USE_DR_GRPO:
+    run_name += "-dr-grpo"
+
+run_name += "-no-format-score"
 # if DEBUG_GENERATE or DEBUG_REWARDS:
 #     run_name += "-debug"
 # run_name = "bfcl-3B-test-run"
@@ -50,9 +66,9 @@ training_args = vf.get_default_grpo_config(
     run_name=run_name,
     num_gpus=NUM_GPUS
 )
-training_args.num_train_epochs = 30
+training_args.num_train_epochs = NUM_EPOCHS
 # rollouts per prompt
-training_args.num_generations = NUM_GPUS - 1 if NUM_GPUS > 2 else 2
+training_args.num_generations = NUM_GENERATIONS
 if DEBUG_GENERATE or DEBUG_REWARDS:
     # training_args.num_generations = 2
     training_args.report_to = "none"
@@ -61,6 +77,7 @@ training_args.per_device_train_batch_size = PER_DEVICE_BATCH_SIZE
 # batches to accumulate (6 prompts * 4 -> 24 prompts per global batch)
 training_args.gradient_accumulation_steps = 4
 # steps per global batch (1 on-policy, 1 off-policy)
+# NOTE: In TRL 0.15.2 this is not supported
 training_args.num_iterations = 2
 # ref model configs
 training_args.beta = 0.04
@@ -85,6 +102,9 @@ trainer = vf.GRPOEnvTrainer(
     eval_dataset=eval_dataset,
     debug_generate=DEBUG_GENERATE,
     debug_rewards=DEBUG_REWARDS,
+    model_name=model_name,
+    run_name=run_name,
+    use_dr_grpo=USE_DR_GRPO,
 )
 
 trainer.train() 

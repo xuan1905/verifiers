@@ -12,7 +12,7 @@ class BfclRubric(Rubric):
         self.parser = parser
         self.env_parser = env_parser
         self.reward_funcs = [
-            self.tool_execution_reward_func,
+            # self.tool_execution_reward_func,
             self.unified_reward_func,
         ]
 
@@ -328,8 +328,13 @@ class BfclRubric(Rubric):
                                 print(f"Valid: False")
                                 time.sleep(3)
 
-                format_score = format_max_score * (valid_messages / total_messages) if total_messages > 0 else 0
-            base_score += format_score
+                if valid_messages == total_messages:
+                    format_score = format_max_score
+                else:
+                    format_score = 0
+                # format_score = format_max_score * (valid_messages / total_messages) if total_messages > 0 else 0
+            #NOTE: Experimenting with adding format score to base score
+            # base_score += format_score
 
             # if debug:
             #     print(f"State Score: {state_score}")

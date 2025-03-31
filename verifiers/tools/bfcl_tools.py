@@ -3,14 +3,14 @@ from huanzhi_utils import load_file
 import json
 
 INVOLVED_CLASS_TO_FUNC_DOC_PATH = {
-    "GorillaFileSystem": "/home/richard/verifiers/verifiers/tools/bfcl_tools/gorilla_file_system.json",
-    "MathAPI": "/home/richard/verifiers/verifiers/tools/bfcl_tools/math_api.json",
-    "MessageAPI": "/home/richard/verifiers/verifiers/tools/bfcl_tools/message_api.json",
-    "TwitterAPI": "/home/richard/verifiers/verifiers/tools/bfcl_tools/posting_api.json",
-    "TicketAPI": "/home/richard/verifiers/verifiers/tools/bfcl_tools/ticket_api.json",
-    "TradingBot": "/home/richard/verifiers/verifiers/tools/bfcl_tools/trading_bot.json",
-    "TravelAPI": "/home/richard/verifiers/verifiers/tools/bfcl_tools/travel_booking.json",
-    "VehicleControlAPI": "/home/richard/verifiers/verifiers/tools/bfcl_tools/vehicle_control.json",
+    "GorillaFileSystem": "/root/richard/test/verifiers/verifiers/tools/bfcl_tools/gorilla_file_system.json",
+    "MathAPI": "/root/richard/test/verifiers/verifiers/tools/bfcl_tools/math_api.json",
+    "MessageAPI": "/root/richard/test/verifiers/verifiers/tools/bfcl_tools/message_api.json",
+    "TwitterAPI": "/root/richard/test/verifiers/verifiers/tools/bfcl_tools/posting_api.json",
+    "TicketAPI": "/root/richard/test/verifiers/verifiers/tools/bfcl_tools/ticket_api.json",
+    "TradingBot": "/root/richard/test/verifiers/verifiers/tools/bfcl_tools/trading_bot.json",
+    "TravelAPI": "/root/richard/test/verifiers/verifiers/tools/bfcl_tools/travel_booking.json",
+    "VehicleControlAPI": "/root/richard/test/verifiers/verifiers/tools/bfcl_tools/vehicle_control.json",
 }
 
 def construct_tools_from_involved_classes(involved_classes: List[str]) -> str:

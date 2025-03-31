@@ -1,6 +1,8 @@
 from typing import Callable, Optional, Union, Any, List
 import time
 import json
+# import unsloth
+# from unsloth import FastLanguageModel
 from accelerate.utils import broadcast_object_list, gather, gather_object
 from datasets import Dataset, IterableDataset
 import torch
@@ -17,12 +19,16 @@ from trl import GRPOTrainer, GRPOConfig
 from trl.data_utils import apply_chat_template, maybe_apply_chat_template
 from trl.import_utils import is_rich_available
 from trl.trainer.utils import pad
+from trl.extras.profiling import profiling_decorator
 
 from verifiers.envs.bfcl_env import BfclEnv
 from verifiers.envs.environment import Environment
 from verifiers.utils.logging_utils import print_prompt_completions_sample
 from verifiers.tools.bfcl_tools import INVOLVED_CLASS_TO_FUNC_DOC_PATH
 from huanzhi_utils import load_file
+import os
+import datetime
+import copy
 
 if is_peft_available():
     from peft import PeftConfig # type: ignore
@@ -47,6 +53,9 @@ class GRPOEnvTrainer(GRPOTrainer):
             peft_config: Optional["PeftConfig"] = None,
             debug_generate: bool = False,
             debug_rewards: bool = False,
+            run_name: str = "",
+            model_name: str = "",
+            use_dr_grpo: bool = False,
             **kwargs,
     ):
         if not args.use_vllm: # type: ignore
@@ -61,6 +70,7 @@ class GRPOEnvTrainer(GRPOTrainer):
             eval_dataset=eval_dataset,
             processing_class=processing_class,
             callbacks=callbacks,
+            # NOTE: Commented out for Unsloth
             optimizers=optimizers,
             peft_config=peft_config,
             **kwargs,
@@ -70,6 +80,18 @@ class GRPOEnvTrainer(GRPOTrainer):
         self.debug_rewards = debug_rewards
         self._eval_started = False
         self._train_started = False
+        self.train_prompt_to_log = []
+        self.train_completion_to_log = []
+        self.train_reward_to_log = []
+        self.train_dataset_rows_to_log = []
+        self.eval_prompt_to_log = []
+        self.eval_completion_to_log = []
+        self.eval_reward_to_log = []
+        self.eval_dataset_rows_to_log = []
+        self.model_name = model_name
+        self._initial_eval = True
+        self.run_name = run_name
+        self.use_dr_grpo = use_dr_grpo
 
     def _generate_and_score_completions(
          self, inputs: dict[str, Union[torch.Tensor, Any]]   
@@ -211,7 +233,11 @@ class GRPOEnvTrainer(GRPOTrainer):
         # Normalize the rewards to compute the advantages
         mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(self.num_generations, dim=0) # type: ignore
         std_grouped_rewards = std_grouped_rewards.repeat_interleave(self.num_generations, dim=0) # type: ignore
-        advantages = (rewards - mean_grouped_rewards) / (std_grouped_rewards + 1e-4)
+        if self.use_dr_grpo:
+            # raise ValueError("DR-GRPO is not supported")
+            advantages = rewards - mean_grouped_rewards # NOTE: Dr.GRPO Adjustment
+        else:
+            advantages = (rewards - mean_grouped_rewards) / (std_grouped_rewards + 1e-4)
 
         # Slice to keep only the local part of the data
         process_slice = slice(
@@ -221,7 +247,6 @@ class GRPOEnvTrainer(GRPOTrainer):
         advantages = advantages[process_slice]
 
         # Log the metrics
-        # NOTE: self.global_step == 0 is because we do eval at the start of training
         mode = "eval" if self.control.should_evaluate else "train"
 
         # if not hasattr(self, '_correctness_values'):
@@ -348,6 +373,9 @@ class GRPOEnvTrainer(GRPOTrainer):
             prompts_to_log = gather_object(prompts_to_display)
             completions_to_log = gather_object(completions)
             rewards_to_log = rewards.tolist()
+            # print(f"Length of rewards: {len(rewards_to_log)}")
+            # print(f"Length of dataset rows: {len(all_inputs)}")
+            # raise ValueError("Stop")
 
             # Gather individual reward components for logging
             rewards_per_func_to_log = rewards_per_func.tolist()
@@ -356,16 +384,52 @@ class GRPOEnvTrainer(GRPOTrainer):
             # time.sleep(3)
 
             if self.accelerator.is_main_process:
-                # if is_rich_available():
-                #     print_prompt_completions_sample(
-                #         # [str(prompts_to_log[0][-1]["content"])],
-                #         [prompts_to_log[0]],
-                #         [completions_to_log[0]],
-                #         [rewards_to_log[0]],
-                #         # self.control.should_evaluate,
-                #         self.state.global_step,
-                #     )
+                if is_rich_available():
+                    print_prompt_completions_sample(
+                        # [str(prompts_to_log[0][-1]["content"])],
+                        [prompts_to_log[0]],
+                        [completions_to_log[0]],
+                        [rewards_to_log[0]],
+                        # self.control.should_evaluate,
+                        self.state.global_step,
+                    )
                     # print("Dummy print completion")
+                                # Handle initial evaluation (step 0)
+                # Check if global step has changed since last logging
+                if not hasattr(self, "last_logged_step") or self.state.global_step != self.last_logged_step:
+                    # Save any accumulated data
+                    if self.train_prompt_to_log:
+                        self.save_mode_logs("train", self.train_prompt_to_log, self.train_completion_to_log, 
+                                            self.train_reward_to_log, self.train_dataset_rows_to_log)
+                        self.train_prompt_to_log = []
+                        self.train_completion_to_log = []
+                        self.train_reward_to_log = []
+                        self.train_dataset_rows_to_log = []
+                    if self.eval_prompt_to_log:
+                        self.save_mode_logs("eval", self.eval_prompt_to_log, self.eval_completion_to_log, 
+                                            self.eval_reward_to_log, self.eval_dataset_rows_to_log)
+                        self.eval_prompt_to_log = []
+                        self.eval_completion_to_log = []
+                        self.eval_reward_to_log = []
+                        self.eval_dataset_rows_to_log = []
+                    
+                    # Update last logged step
+                    self.last_logged_step = self.state.global_step
+                    print(f"Cleared and saved logs at step {self.state.global_step}")
+                
+                # Always collect current data
+                if mode == "train":
+                    self.train_prompt_to_log.extend(prompts_to_log)
+                    self.train_completion_to_log.extend(completions_to_log)
+                    self.train_reward_to_log.extend(rewards_to_log)
+                    self.train_dataset_rows_to_log.extend(all_inputs)
+                    print(f"Stored {len(prompts_to_log)} train samples (total: {len(self.train_prompt_to_log)})")
+                elif mode == "eval":
+                    self.eval_prompt_to_log.extend(prompts_to_log)
+                    self.eval_completion_to_log.extend(completions_to_log)
+                    self.eval_reward_to_log.extend(rewards_to_log)
+                    self.eval_dataset_rows_to_log.extend(all_inputs)
+                    print(f"Stored {len(prompts_to_log)} eval samples (total: {len(self.eval_prompt_to_log)})")
                 if self.args.report_to and "wandb" in self.args.report_to and wandb.run is not None: # type: ignore
                     import pandas as pd
 
@@ -406,3 +470,92 @@ class GRPOEnvTrainer(GRPOTrainer):
             "ref_per_token_logps": ref_per_token_logps,
             "advantages": advantages,
         }
+
+    def save_mode_logs(self, mode, prompts, completions, rewards, dataset_rows):
+        """Helper method to save logs for a specific mode."""
+        import pandas as pd
+        print(f"Saving {mode} results with {len(prompts)} samples.")
+        
+        df = pd.DataFrame({
+            "step": [self.state.global_step] * len(prompts),
+            "prompt": prompts,
+            "completion": completions,
+            "reward": rewards,
+            "correctness": [r >= 1.0 for r in rewards],
+            "dataset_rows": dataset_rows,
+        })
+        
+        current_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-8))).strftime("%Y%m%d_%H%M%S")
+        model_name_safe = self.model_name.split('/')[-1].replace('-', '_')
+        output_dir = f"outputs/eval_results/{self.run_name}/{current_time}_{mode}_{self.state.global_step}"
+        
+        # Create directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Save files with timestamp in the path
+        df.to_csv(f"{output_dir}/{mode}_result_{model_name_safe}_step_{self.state.global_step}.csv", index=False)
+        dataset = Dataset.from_pandas(df)
+        dataset.save_to_disk(f"{output_dir}/{mode}_result_{model_name_safe}_step_{self.state.global_step}.hf")
+        
+        if self.state.global_step == 0 and mode == "eval":
+            self._initial_eval = False
+    
+    @profiling_decorator
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+        if return_outputs:
+            raise ValueError("The GRPOTrainer does not support returning outputs")
+        # Compute the per-token log probabilities for the model
+
+        prompt_ids, prompt_mask = inputs["prompt_ids"], inputs["prompt_mask"]
+        completion_ids, completion_mask = inputs["completion_ids"], inputs["completion_mask"]
+        input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
+        attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
+        logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
+
+        per_token_logps = self._get_per_token_logps(model, input_ids, attention_mask, logits_to_keep)
+
+        # Compute the KL divergence between the model and the reference model
+        if self.beta != 0.0:
+            ref_per_token_logps = inputs["ref_per_token_logps"]
+            per_token_kl = (
+                torch.exp(ref_per_token_logps - per_token_logps) - (ref_per_token_logps - per_token_logps) - 1
+            )
+
+        # Compute the loss
+        advantages = inputs["advantages"]
+        # When using num_iterations == 1, old_per_token_logps == per_token_logps, so we can skip it's computation (see
+        # _generate_and_score_completions) and use per_token_logps.detach() instead.
+        old_per_token_logps = inputs["old_per_token_logps"] if self.num_iterations > 1 else per_token_logps.detach()
+        coef_1 = torch.exp(per_token_logps - old_per_token_logps)
+        coef_2 = torch.clamp(coef_1, 1 - self.epsilon, 1 + self.epsilon)
+        per_token_loss1 = coef_1 * advantages.unsqueeze(1)
+        per_token_loss2 = coef_2 * advantages.unsqueeze(1)
+        per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
+        if self.beta != 0.0:
+            per_token_loss = per_token_loss + self.beta * per_token_kl
+        if self.use_dr_grpo:
+            # raise ValueError("DR-GRPO is not supported")
+            # a = (per_token_loss * completion_mask).sum()
+            # b = completion_mask.sum()
+            # c = torch.mean(torch.sum(per_token_loss * completion_mask, dim=-1))
+            # d = self.args.max_completion_length
+            # print(a)
+            # print(b)
+            # print(c)
+            # print(d)
+            # raise ValueError("Stop")
+            loss = torch.mean(torch.sum(per_token_loss * completion_mask, dim=-1)) / self.args.max_completion_length
+        else:
+            loss = (per_token_loss * completion_mask).sum() / completion_mask.sum()
+
+        # Log the metrics
+        mode = "eval" if self.control.should_evaluate else "train"
+
+        if self.beta != 0.0:
+            mean_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum()
+            self._metrics[mode]["kl"].append(self.accelerator.gather_for_metrics(mean_kl).mean().item())
+
+        is_clipped = (per_token_loss1 < per_token_loss2).float()
+        clip_ratio = (is_clipped * completion_mask).sum() / completion_mask.sum()
+        self._metrics[mode]["clip_ratio"].append(self.accelerator.gather_for_metrics(clip_ratio).mean().item())
+        return loss

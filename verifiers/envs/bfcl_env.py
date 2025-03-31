@@ -39,6 +39,7 @@ class BfclEnv(MultiStepEnv):
                  max_num_turns: int = -1,
                  max_steps_per_turn: int = 10, 
                  curriculum_learning: bool = False,
+                 use_latest_trl: bool = False,
                 **kwargs):
         
         self.CLASS_FILE_PATH_MAPPING = {
@@ -88,8 +89,17 @@ class BfclEnv(MultiStepEnv):
         self.rubric = BfclRubric()
         self.llm_parser = XMLParser(fields=["reasoning", "tool"])
         self.env_parser = XMLParser(fields=["tool_result"])
+        self.use_latest_trl = use_latest_trl
 
     def get_dataset(self, max_num_turns: int = -1, **kwargs: Any) -> Dataset:
+        if self.dataset is None:
+            self.dataset = preprocess_dataset(
+                dataset_name=self.dataset_name,
+                split="train",
+                system_prompt=self.system_prompt,
+                few_shot=self.few_shot,
+                curriculum_learning=self.curriculum_learning
+            )
         if max_num_turns > 0:
             self.dataset = self.dataset.filter(lambda x: x["num_turns"] <= max_num_turns)
         return self.dataset
@@ -264,12 +274,12 @@ class BfclEnv(MultiStepEnv):
                 all_func_call_results.append("Error: Invalid tool command. Tool command must be one list of JSON objects. Please ensure correct formatting.")
                 return json.dumps(all_func_call_results), state
             if command == []:
-                all_func_call_results.append("Function Call Failed. Error: Found empty tool calls")
+                all_func_call_results.append("Function Call Failed. Error: Found empty tool calls.")
                 return json.dumps(all_func_call_results), state
             for tool_call in command:
                 # Check if tool_call is a dictionary with 'name' and 'args' keys and 'args' is a dictionary
                 if not (isinstance(tool_call, dict) and "name" in tool_call and "args" in tool_call and isinstance(tool_call["args"], dict)):
-                    all_func_call_results.append(f"Function Call {tool_call} Failed. Error: Tool command must be a dictionary with 'name' key and 'args' as a dictionary")
+                    all_func_call_results.append(f"Function Call {tool_call} Failed. Error: Tool command must be a dictionary with 'name' key and 'args' as a dictionary. Function calls after this will not be executed.")
                     return json.dumps(all_func_call_results), state
                 
                 tool_name = tool_call["name"]
@@ -309,19 +319,22 @@ class BfclEnv(MultiStepEnv):
                         print(f"State Environment: {state['environment']}")
                         raise Exception(f"Error: Method '{tool_name}' found in involved classes but not found in any class instance. Available Tools: {available_tools}")
                     # raise Exception(f"Error: Method '{tool_name}' found in involved classes but not found in any class instance. Available Tools: {available_tools}")
-                    all_func_call_results.append(f"Function Call {tool_call} Failed. Error: Method '{tool_name}' not found in any class instance.")
+                    all_func_call_results.append(f"Function Call {tool_call} Failed. Error: Method '{tool_name}' not found in any class instance. Function calls after this will not be executed.")
                     return json.dumps(all_func_call_results), state
                 
                 # Call the tool function with arguments using the class instance
                 try:
                     result = tool_func(**tool_args)
                 except Exception as e:
-                    all_func_call_results.append(f"Function Call {tool_call} Failed during execution. Error: {e}")
+                    all_func_call_results.append(f"Function Call {tool_call} Failed during execution. Error: {e}. Function calls after this will not be executed.")
                     return json.dumps(all_func_call_results), state
                 
                 # If function call succeeds but tool result is error 
-                if "error" in str(result).lower():
-                    all_func_call_results.append(f"Function Call {tool_call} Failed during execution. Error: {result}")
+                # NOTE: This below gives false negatives: sometimes the function return result has the word "error" in it
+                # if "error" in str(result).lower():
+                # 
+                if "'error':" in str(result).lower():
+                    all_func_call_results.append(f"Function Call {tool_call} Failed during execution. Error: {result}. Function calls after this will not be executed.")
                     return json.dumps(all_func_call_results), state
                 
                 # Otherwise, the function call is successful
@@ -383,7 +396,21 @@ class BfclEnv(MultiStepEnv):
                 print("--------------------------------New round of generation--------------------------------")
                 print(f"Latest Input Message to LLM: {messages_to_step[0][-2:] if len(messages_to_step[0]) >= 2 else messages_to_step[0]}")
                 time.sleep(3)
-        llm_responses = llm.chat(messages_to_step, sampling_params=sampling_params, use_tqdm=False) # type: ignore
+        # NOTE: If TRL version is 0.16.0, use vllm_client.generate instead
+        if self.use_latest_trl:
+            llm_responses = self.vllm_client.generate(
+                prompts=messages_to_step,
+                # n=self.num_generations,
+                repetition_penalty=self.repetition_penalty,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                top_k=-1 if self.top_k is None else self.top_k,
+                min_p=0.0 if self.min_p is None else self.min_p,
+                max_tokens=self.max_completion_length,
+                guided_decoding_regex=self.guided_decoding_regex,
+            )
+        else:
+            llm_responses = llm.chat(messages_to_step, sampling_params=sampling_params, use_tqdm=False) # type: ignore
 
         # print("--------------------------------New round of generation--------------------------------")
         # if 4 in live_indices:
@@ -433,7 +460,10 @@ class BfclEnv(MultiStepEnv):
                 #     time.sleep(3)
                 states[j]["completed"] = True
                 states[j]["completion_ids"] = states[j]["completion_ids"][:sampling_params.max_tokens]
-                states[j]["completion_mask"] = states[j]["completion_mask"][:sampling_params.max_tokens]
+                # NOTE: Modification to fix edge case
+                # states[j]["completion_mask"] = states[j]["completion_mask"][:sampling_params.max_tokens]
+                states[j]["completion_mask"] = states[j]["completion_mask"][:len(states[j]["completion_ids"])]
+                
                 # print(f"Conversation History: {'\n'.join([m['content'] for m in states[j]['messages']])}")
                 # print(f"Index: {j}")
                 # print(f"User Question Bank: {json.loads(states[j]['dataset_row']['user_question_bank'])}")
@@ -571,8 +601,8 @@ class BfclEnv(MultiStepEnv):
                 debug: bool = False,
                 **kwargs: Any) -> Dict[str, List[Sequence[int]] | List[str] |  List[List[Dict[str, Any]]]]:
         
-        if dataset_rows:
-            self.dataset_rows = dataset_rows
+        # if dataset_rows:
+        #     self.dataset_rows = dataset_rows
             # print("Entering generate")
             # print(f"Original dataset_rows: {[x['id'] for x in dataset_rows]}")
             # print(f"Process Index: {self.accelerator.process_index}")
@@ -642,7 +672,7 @@ class BfclEnv(MultiStepEnv):
             "ids": completion_ids,
             "messages": completion_messages,
             "mask": completion_mask,
-            "states": states
+            "states": states,
         }
 
         return output
