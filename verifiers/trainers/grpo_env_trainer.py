@@ -25,6 +25,7 @@ from verifiers.envs.bfcl_env import BfclEnv
 from verifiers.envs.environment import Environment
 from verifiers.utils.logging_utils import print_prompt_completions_sample
 from verifiers.tools.bfcl_tools import INVOLVED_CLASS_TO_FUNC_DOC_PATH
+from bespokelabs.curator.client import Client
 from huanzhi_utils import load_file
 import os
 import datetime
@@ -92,6 +93,23 @@ class GRPOEnvTrainer(GRPOTrainer):
         self._initial_eval = True
         self.run_name = run_name
         self.use_dr_grpo = use_dr_grpo
+
+        if train_dataset is not None:
+            dataset_hash = train_dataset._fingerprint
+        else:
+            dataset_hash = "N/A"
+        metadata_dict = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "dataset_hash": dataset_hash,
+            "prompt_func": "N/A",
+            "parse_func": "N/A",
+            "model_name": model_name,
+            "run_hash": run_name,
+            "batch_mode": False
+        }
+        if os.environ["CURATOR_VIEWER"] == "1":
+            self._curator_viewer_client = Client()
+            self._curator_session_id = self._curator_session_id.create_session(metadata_dict)
 
     def _generate_and_score_completions(
          self, inputs: dict[str, Union[torch.Tensor, Any]]   
@@ -483,6 +501,7 @@ class GRPOEnvTrainer(GRPOTrainer):
             "reward": rewards,
             "correctness": [r >= 1.0 for r in rewards],
             "dataset_rows": dataset_rows,
+            "train": [mode == "train"] * len(prompts),
         })
         
         current_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-8))).strftime("%Y%m%d_%H%M%S")
@@ -499,6 +518,13 @@ class GRPOEnvTrainer(GRPOTrainer):
         
         if self.state.global_step == 0 and mode == "eval":
             self._initial_eval = False
+
+        if os.environ["CURATOR_VIEWER"] == "1":
+            from bespokelabs.curator.utils import push_to_viewer
+
+            df.drop(columns=["dataset_rows"], inplace=True)
+            dataset = Dataset.from_pandas(df)
+            push_to_viewer(dataset, session_id=self._curator_session_id)
     
     @profiling_decorator
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
