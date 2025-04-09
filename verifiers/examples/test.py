@@ -4,7 +4,7 @@ from verifiers.prompts import CALCULATOR_FEW_SHOT
 import time
 # from unsloth import FastLanguageModel
 model_name = "Qwen/Qwen2.5-7B-Instruct"
-# model_name = "/root/richard/test/verifiers/outputs/bfcl-qwen2.5-7b-instruct-1-turns-dr-grpo/checkpoint-800"
+# model_name = "/root/richard/test/verifiers/outputs/bfcl-qwen2.5-7b-instruct-1-turns-dr-grpo-update-ref-model-no-format-score-new-prompt-with-gibberish-judge/checkpoint-700"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
 NUM_GPUS = 4
@@ -12,17 +12,21 @@ PER_DEVICE_BATCH_SIZE = 8
 NUM_GENERATIONS = 8
 # (NUM_GPUS - 1) * PER_DEVICE_BATCH_SIZE / NUM_GENERATIONS = NUM PROMPT PER DEVICE
 EVAL_DATASET_SIZE = 100
-MAX_STEPS_PER_TURN = 5
+MAX_STEPS_PER_TURN = 10
 CURRICULUM_LEARNING = True
 MAX_TURNS_ONLY = True
 MAX_NUM_TURNS = 1 # 4 turns is almost max
 DEBUG_GENERATE = False
 DEBUG_REWARDS = False
 EVAL_STEPS = 50
-SAVE_STEPS = 50
+SAVE_STEPS = 100
 NUM_EPOCHS = 100
-USE_DR_GRPO = True
+USE_DR_GRPO = False
 USE_LATEST_TRL = False
+UPDATE_REF_MODEL = True
+EVAL_ON_START = True
+TEST_HYPOTHESIS = True
+BASELINE_RUN = False
 # if DEBUG_GENERATE or DEBUG_REWARDS:
 #     NUM_GPUS = 2
 #     MAX_STEPS_PER_TURN = 5
@@ -39,9 +43,16 @@ vf_env = vf.BfclEnv(
 )
 
 train_dataset = vf_env.get_dataset(max_num_turns=MAX_NUM_TURNS)
+# if TEST_HYPOTHESIS:
+#     question_subset_ids = ["multi_turn_base_" + str(i) for i in [69, 198, 1, 134, 194, 93, 6, 104, 145, 138, 163, 47]]
+#     train_dataset = train_dataset.filter(lambda x: x["id"] in question_subset_ids)
+#     print(set(train_dataset["id"]))
+#     assert len(set(train_dataset["id"])) == len(question_subset_ids), f"len(set(train_dataset['id'])): {len(set(train_dataset['id']))}, len(question_subset_ids): {len(question_subset_ids)}"
 eval_dataset = vf_env.get_eval_dataset(max_num_turns=MAX_NUM_TURNS, max_turn_only=MAX_TURNS_ONLY, 
                                     #    n=EVAL_DATASET_SIZE
                                        )
+# if TEST_HYPOTHESIS:
+#     eval_dataset = eval_dataset.select(range(0,10))
 # train_dataset = train_dataset.select(range(0,10))
 # eval_dataset = eval_dataset.select(range(0,20))
 print(train_dataset)
@@ -57,8 +68,18 @@ if USE_LATEST_TRL:
     run_name += "-latest-trl"
 if USE_DR_GRPO:
     run_name += "-dr-grpo"
+if UPDATE_REF_MODEL:
+    run_name += "-update-ref-model"
 
 run_name += "-no-format-score"
+run_name += "-new-prompt"
+if TEST_HYPOTHESIS:
+    run_name += "-test-hypothesis"
+if BASELINE_RUN:
+    run_name += "-baseline"
+else:
+    run_name += "-clip-advantage-negative-only"
+# run_name += "-with-gibberish-judge"
 # if DEBUG_GENERATE or DEBUG_REWARDS:
 #     run_name += "-debug"
 # run_name = "bfcl-3B-test-run"
@@ -83,14 +104,25 @@ training_args.num_iterations = 2
 training_args.beta = 0.04
 training_args.max_grad_norm = 0.2
 # evals
-training_args.eval_strategy = "steps"
-training_args.eval_on_start = True
-training_args.eval_steps = EVAL_STEPS
+if TEST_HYPOTHESIS:
+    # training_args.eval_strategy = "no"
+    # training_args.eval_on_start = False
+    training_args.eval_strategy = "steps"
+    training_args.eval_on_start = EVAL_ON_START
+    training_args.eval_steps = EVAL_STEPS
+else:
+    training_args.eval_strategy = "steps"
+    training_args.eval_on_start = EVAL_ON_START
+    training_args.eval_steps = EVAL_STEPS
 training_args.save_strategy = "steps"
 training_args.save_steps = SAVE_STEPS
 training_args.per_device_eval_batch_size = PER_DEVICE_BATCH_SIZE
 training_args.eval_accumulation_steps = 1
 training_args.data_seed = 42
+if UPDATE_REF_MODEL:
+    training_args.sync_ref_model = True
+    training_args.ref_model_mixup_alpha = 1.0
+    training_args.ref_model_sync_steps = SAVE_STEPS
 
 trainer = vf.GRPOEnvTrainer(
     model=model,
@@ -105,6 +137,7 @@ trainer = vf.GRPOEnvTrainer(
     model_name=model_name,
     run_name=run_name,
     use_dr_grpo=USE_DR_GRPO,
+    test_hypothesis_clip_advantage=(TEST_HYPOTHESIS and not BASELINE_RUN),
 )
 
 trainer.train() 

@@ -172,7 +172,8 @@ class BfclEnv(MultiStepEnv):
         # If reasoning is present then remove it, only check for TASK_ERROR in the solution part
         if "<reasoning>" in llm_response and "</reasoning>" in llm_response:
             llm_response = llm_response.split("</reasoning>")[1]
-        if ((len(user_question_bank) == 0) and (self.current_turn_completed(state=state, debug=debug))) or ("TASK_ERROR" in llm_response): 
+        if ((len(user_question_bank) == 0) and (self.current_turn_completed(state=state, debug=debug))) or (
+            "TASK_ERROR" in llm_response) or ("task_error" in llm_response): 
             # NOTE: Found responses like < TASK_ERROR > and not being able to stop properly
             if debug:
                 if "TASK_ERROR" in llm_response:
@@ -186,9 +187,9 @@ class BfclEnv(MultiStepEnv):
         
     def current_turn_completed(self, state: Dict[str, Any] = None, debug: bool = False, **kwargs: Any) -> bool:
         messages = state["messages"]
-        if "<TASK_FINISHED>" in messages[-1]["content"]:
+        if "TASK_FINISHED" in messages[-1]["content"] or "task_finished" in messages[-1]["content"]:
             if debug:
-                print(f"Found <TASK_FINISHED> in current turn. Current Turn Completed")
+                print(f"Found TASK_FINISHED in current turn. Current Turn Completed")
                 time.sleep(3)
             return True
         return False
@@ -440,8 +441,7 @@ class BfclEnv(MultiStepEnv):
                     print(f"llm_response: {states[j]['messages'][-1]['content']}")
                     time.sleep(3)
 
-            # TODO: With multi-turn generation removing reasoning, 
-            # we need to update the completion mask and completion ids for each turn
+            # TODO: With multi-turn generation removing reasoning, we need to update the completion mask and completion ids for each turn
 
             # update completion masks
             states[j]["completion_mask"].extend([self.env_mask] * env_response_len)
@@ -454,7 +454,13 @@ class BfclEnv(MultiStepEnv):
 
             if 'successful_func_calls' not in states[j]:
                 states[j]['successful_func_calls'] = [[]]
-            if self.current_entry_completed(state=states[j], debug=(debug and j == 0)) or len(states[j]["completion_ids"]) > sampling_params.max_tokens: # type: ignore
+
+            if len(states[j]["completion_ids"]) > len(states[j]["completion_mask"]): # type: ignore
+                states[j]["completion_mask"].extend([1] * (len(states[j]["completion_ids"]) - len(states[j]["completion_mask"]))) # type: ignore
+            if len(states[j]["completion_mask"]) > len(states[j]["completion_ids"]): # type: ignore
+                states[j]["completion_mask"] = states[j]["completion_mask"][:len(states[j]["completion_ids"])] # type: ignore
+
+            if self.current_entry_completed(state=states[j], debug=(debug and j == 0)) or len(states[j]["completion_ids"]) > sampling_params.max_tokens - 1: # type: ignore
                 # if j == 0:
                 #     print(f"Entering current_entry_completed")
                 #     time.sleep(3)
@@ -494,7 +500,7 @@ class BfclEnv(MultiStepEnv):
                 # print(f"Length of answer: {len(json.loads(states[j]['dataset_row']['answer']))}")
                 # time.sleep(3)
                 assert len(states[j]["successful_func_calls"]) == len(json.loads(states[j]["dataset_row"]["answer"]))
-            elif self.current_turn_completed(state=states[j], debug=(debug and (j == 0))) and not self.current_entry_completed(state=states[j], debug=False):
+            elif (self.current_turn_completed(state=states[j], debug=(debug and (j == 0)))):
                 # if j == 0:
                 #     print(f"Entering current_turn_completed")
                 #     time.sleep(3)
@@ -539,8 +545,21 @@ class BfclEnv(MultiStepEnv):
                     if j == 0:
                         print(f"env_response: {states[j]['messages'][-1]['content']}")
                         time.sleep(3)
-
-            assert len(states[j]["completion_mask"]) == len(states[j]["completion_ids"])
+            # enforce that the completion mask and completion ids are the same length
+            # weird bug that happens rarely and only for certain models; something tokenizer related :(
+            if not len(states[j]["completion_mask"]) == len(states[j]["completion_ids"]):
+                print(states[j]["messages"])
+                print(states[j]["completion_mask"])
+                print(states[j]["completion_ids"])
+                min_len = min(len(states[j]["completion_mask"]), len(states[j]["completion_ids"]))
+                states[j]["completion_mask"] = states[j]["completion_mask"][:min_len]
+                states[j]["completion_ids"] = states[j]["completion_ids"][:min_len]
+                
+            if len(states[j]["completion_mask"]) != len(states[j]["completion_ids"]):
+                print(f"Completion mask: {states[j]['completion_mask']}")
+                print(f"Completion ids: {states[j]['completion_ids']}")
+                print(f"State: {states[j]}")
+            assert len(states[j]["completion_mask"]) == len(states[j]["completion_ids"]), f"Completion mask and completion ids length mismatch: {len(states[j]['completion_mask'])} != {len(states[j]['completion_ids'])}"
         return states
 
     def _initialize_environments(self, states: List[Dict[str, Any]]) -> None:

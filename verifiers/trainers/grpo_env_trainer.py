@@ -56,6 +56,7 @@ class GRPOEnvTrainer(GRPOTrainer):
             run_name: str = "",
             model_name: str = "",
             use_dr_grpo: bool = False,
+            test_hypothesis_clip_advantage: bool = False,
             **kwargs,
     ):
         if not args.use_vllm: # type: ignore
@@ -92,6 +93,7 @@ class GRPOEnvTrainer(GRPOTrainer):
         self._initial_eval = True
         self.run_name = run_name
         self.use_dr_grpo = use_dr_grpo
+        self.test_hypothesis_clip_advantage = test_hypothesis_clip_advantage
 
     def _generate_and_score_completions(
          self, inputs: dict[str, Union[torch.Tensor, Any]]   
@@ -238,6 +240,10 @@ class GRPOEnvTrainer(GRPOTrainer):
             advantages = rewards - mean_grouped_rewards # NOTE: Dr.GRPO Adjustment
         else:
             advantages = (rewards - mean_grouped_rewards) / (std_grouped_rewards + 1e-4)
+        if self.test_hypothesis_clip_advantage:
+            # advantages = torch.clip(advantages, min=0) # Clip the advantages to be all positive
+            advantages = torch.clip(advantages, max=0) # Clip the advantages to be all negative
+            assert (advantages <= 0).all(), f"Advantages: {advantages}"
 
         # Slice to keep only the local part of the data
         process_slice = slice(
@@ -448,7 +454,7 @@ class GRPOEnvTrainer(GRPOTrainer):
                     # Add correctness to the table if unified_reward_func exists
                     if unified_idx is not None:
                         table["correctness"] = [(row[unified_idx] >= 1.0) for row in rewards_per_func_to_log]
-
+                    table["contains_gibberish"] = [(row[unified_idx] == -1) for row in rewards_per_func_to_log]
                     df = pd.DataFrame(table)
                     wandb.log({"completions": wandb.Table(dataframe=df)}) # type: ignore
                 
@@ -482,6 +488,7 @@ class GRPOEnvTrainer(GRPOTrainer):
             "completion": completions,
             "reward": rewards,
             "correctness": [r >= 1.0 for r in rewards],
+            "contains_gibberish": [r == -1 for r in rewards],
             "dataset_rows": dataset_rows,
         })
         
@@ -534,16 +541,6 @@ class GRPOEnvTrainer(GRPOTrainer):
         if self.beta != 0.0:
             per_token_loss = per_token_loss + self.beta * per_token_kl
         if self.use_dr_grpo:
-            # raise ValueError("DR-GRPO is not supported")
-            # a = (per_token_loss * completion_mask).sum()
-            # b = completion_mask.sum()
-            # c = torch.mean(torch.sum(per_token_loss * completion_mask, dim=-1))
-            # d = self.args.max_completion_length
-            # print(a)
-            # print(b)
-            # print(c)
-            # print(d)
-            # raise ValueError("Stop")
             loss = torch.mean(torch.sum(per_token_loss * completion_mask, dim=-1)) / self.args.max_completion_length
         else:
             loss = (per_token_loss * completion_mask).sum() / completion_mask.sum()
