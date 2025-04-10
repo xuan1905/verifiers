@@ -25,8 +25,9 @@ USE_DR_GRPO = False
 USE_LATEST_TRL = False
 UPDATE_REF_MODEL = True
 EVAL_ON_START = True
-TEST_HYPOTHESIS = True
-BASELINE_RUN = False
+TEST_HYPOTHESIS = False
+if TEST_HYPOTHESIS:
+    BASELINE_RUN = False
 # if DEBUG_GENERATE or DEBUG_REWARDS:
 #     NUM_GPUS = 2
 #     MAX_STEPS_PER_TURN = 5
@@ -75,10 +76,15 @@ run_name += "-no-format-score"
 run_name += "-new-prompt"
 if TEST_HYPOTHESIS:
     run_name += "-test-hypothesis"
-if BASELINE_RUN:
-    run_name += "-baseline"
-else:
-    run_name += "-clip-advantage-negative-only"
+    if BASELINE_RUN:
+        run_name += "-baseline"
+    else:
+        # run_name += "-clip-advantage-negative-only"
+        run_name += "-clip-advantage-positive-only"
+
+
+
+    
 # run_name += "-with-gibberish-judge"
 # if DEBUG_GENERATE or DEBUG_REWARDS:
 #     run_name += "-debug"

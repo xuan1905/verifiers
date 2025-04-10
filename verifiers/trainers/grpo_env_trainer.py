@@ -241,9 +241,10 @@ class GRPOEnvTrainer(GRPOTrainer):
         else:
             advantages = (rewards - mean_grouped_rewards) / (std_grouped_rewards + 1e-4)
         if self.test_hypothesis_clip_advantage:
-            # advantages = torch.clip(advantages, min=0) # Clip the advantages to be all positive
-            advantages = torch.clip(advantages, max=0) # Clip the advantages to be all negative
-            assert (advantages <= 0).all(), f"Advantages: {advantages}"
+            advantages = torch.clip(advantages, min=0) # Clip the advantages to be all positive
+            # advantages = torch.clip(advantages, max=0) # Clip the advantages to be all negative
+            assert (advantages >= 0).all(), f"Advantages: {advantages}"
+            # assert (advantages <= 0).all(), f"Advantages: {advantages}"
 
         # Slice to keep only the local part of the data
         process_slice = slice(

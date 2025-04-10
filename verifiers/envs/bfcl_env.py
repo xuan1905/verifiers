@@ -28,11 +28,11 @@ class BfclEnv(MultiStepEnv):
                  system_prompt: str = BFCL_PROMPT,
                  few_shot: List[Dict[str, str]] = [],
                  sampling_args={
-                     "stop": [
-                              "</tool>", 
-                              "<TASK_FINISHED>",
-                              "<TASK_ERROR>",
-                              ],
+                    #  "stop": [
+                    #           "</tool>", 
+                    #           "<TASK_FINISHED>",
+                    #           "<TASK_ERROR>",
+                    #           ],
                      "include_stop_str_in_output": True
                  },
                  mask_env_response: bool = True,
