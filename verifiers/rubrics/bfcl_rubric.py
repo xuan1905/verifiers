@@ -6,63 +6,63 @@ from verifiers.parsers import XMLParser
 from verifiers.rubrics import Rubric
 from typing import Dict
 from pydantic import BaseModel, Field
-from bespokelabs import curator
+# from bespokelabs import curator
 from datasets import Dataset
 import os
 import openai
 
-os.environ["CURATOR_DISABLE_CACHE"] = "1"
-os.environ["CURATOR_VIEWER"] = "0"
+# os.environ["CURATOR_DISABLE_CACHE"] = "1"
+# os.environ["CURATOR_VIEWER"] = "0"
 
-BFCL_PROMPT = """\
-You are an expert in composing functions. You are given a question from a user and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to complete the task.
-You have access to the following tools to help solve the task:
+# BFCL_PROMPT = """\
+# You are an expert in composing functions. You are given a question from a user and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to complete the task.
+# You have access to the following tools to help solve the task:
 
-{tools}
+# {tools}
 
-For each step:
-1. Start with a step-by-step thinking process inside <reasoning> </reasoning> tags to think through the problem.
-2. If needed, use tools by writing one or more JSON commands as a list inside <tool> </tool> tags. Each item in the list should have a name and args key, with args being a dictionary.
-   example: <tool> [{{"name": func_1_name, "args": {{arg1: value1, arg2: value2}}}}, {{"name": func_2_name, "args": {{arg3: value3, arg4: value4}}}}] </tool>
-   Tools expect specific JSON input formats. Do not make up tools or arguments that aren't listed.
-3. After you have used the tools, you will see the tool outputs inside <tool_result> </tool_result> tags in the same order from the system.
-4. If you believe the current task is completed and no more tool, summarize your progresses and output <TASK_FINISHED> in the end of your response to terminate the conversation.
-5. Otherwise if you believe the task is not able to be completed, summarize what is problematic and output <TASK_ERROR> in the end of your response to terminate the conversation.
-"""
+# For each step:
+# 1. Start with a step-by-step thinking process inside <reasoning> </reasoning> tags to think through the problem.
+# 2. If needed, use tools by writing one or more JSON commands as a list inside <tool> </tool> tags. Each item in the list should have a name and args key, with args being a dictionary.
+#    example: <tool> [{{"name": func_1_name, "args": {{arg1: value1, arg2: value2}}}}, {{"name": func_2_name, "args": {{arg3: value3, arg4: value4}}}}] </tool>
+#    Tools expect specific JSON input formats. Do not make up tools or arguments that aren't listed.
+# 3. After you have used the tools, you will see the tool outputs inside <tool_result> </tool_result> tags in the same order from the system.
+# 4. If you believe the current task is completed and no more tool, summarize your progresses and output <TASK_FINISHED> in the end of your response to terminate the conversation.
+# 5. Otherwise if you believe the task is not able to be completed, summarize what is problematic and output <TASK_ERROR> in the end of your response to terminate the conversation.
+# """
 
-class JudgeResult(BaseModel):
-    is_gibberish: bool = Field(description="Whether the response contains gibberish.")
-    # reasoning: str = Field(description="Reasoning for the judgment.")
+# class JudgeResult(BaseModel):
+#     is_gibberish: bool = Field(description="Whether the response contains gibberish.")
+#     # reasoning: str = Field(description="Reasoning for the judgment.")
 
-class Judge(curator.LLM):
-    response_format = JudgeResult
+# class Judge(curator.LLM):
+#     response_format = JudgeResult
 
-    def prompt(self, input: Dict) -> str:
-        model_completion = [completion for completion in input['completion'] if completion['role'] == 'assistant']
-        # model_completion = input['completion']
-#         prompt = f'''Determine whether the following tool-calling agent trajectory contains gibberish output or useless repetitions.
+#     def prompt(self, input: Dict) -> str:
+#         model_completion = [completion for completion in input['completion'] if completion['role'] == 'assistant']
+#         # model_completion = input['completion']
+# #         prompt = f'''Determine whether the following tool-calling agent trajectory contains gibberish output or useless repetitions.
 
-# The tool-calling agent follows these rules:
-# {BFCL_PROMPT}
+# # The tool-calling agent follows these rules:
+# # {BFCL_PROMPT}
 
-# When evaluating for gibberish, consider:
-# 1. Gibberish includes: random tokens, completely irrelevant text, nonsensical outputs, or text that doesn't follow the expected format.
-# 2. NOT gibberish: Proper and accurate use of <reasoning>, <tool>, and <TASK_FINISHED>/<TASK_ERROR> tags according to the rules.
-# 3. Make sure to distinguish between gibberish output from the model itself or the tool results. For example, if the tool results looks gibberish, and the model is just reporting it, it is not the model's fault.
+# # When evaluating for gibberish, consider:
+# # 1. Gibberish includes: random tokens, completely irrelevant text, nonsensical outputs, or text that doesn't follow the expected format.
+# # 2. NOT gibberish: Proper and accurate use of <reasoning>, <tool>, and <TASK_FINISHED>/<TASK_ERROR> tags according to the rules.
+# # 3. Make sure to distinguish between gibberish output from the model itself or the tool results. For example, if the tool results looks gibberish, and the model is just reporting it, it is not the model's fault.
 
-# Analyze the following trajectory, pay attention to assistant messages only and ignore system messages:
-# {model_completion}
-# '''
-        prompt = f"Determine whether the following tool-calling agent responses contains gibberish output or useless repetitions: {model_completion}"
-        return prompt
+# # Analyze the following trajectory, pay attention to assistant messages only and ignore system messages:
+# # {model_completion}
+# # '''
+#         prompt = f"Determine whether the following tool-calling agent responses contains gibberish output or useless repetitions: {model_completion}"
+#         return prompt
         
-    def parse(self, input: Dict, response: JudgeResult) -> Dict:
-        input['is_gibberish_judge'] = response.is_gibberish
-        # input['judge_reasoning'] = response.reasoning
-        return input
+#     def parse(self, input: Dict, response: JudgeResult) -> Dict:
+#         input['is_gibberish_judge'] = response.is_gibberish
+#         # input['judge_reasoning'] = response.reasoning
+#         return input
 
-judge = Judge(model_name="gpt-4o-mini", 
-              generation_params={"temperature": 0.0})
+# judge = Judge(model_name="gpt-4o-mini", 
+#               generation_params={"temperature": 0.0})
 
 class BfclRubric(Rubric):
     def __init__(self,

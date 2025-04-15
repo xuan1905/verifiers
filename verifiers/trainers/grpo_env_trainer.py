@@ -23,7 +23,7 @@ from verifiers.envs.bfcl_env import BfclEnv
 from verifiers.envs.environment import Environment
 from verifiers.utils.logging_utils import print_prompt_completions_sample
 from verifiers.tools.bfcl_tools import INVOLVED_CLASS_TO_FUNC_DOC_PATH
-from bespokelabs.curator.client import Client
+# from bespokelabs.curator.client import Client
 from huanzhi_utils import load_file
 import os
 import datetime
@@ -111,9 +111,9 @@ class GRPOEnvTrainer(GRPOTrainer):
             "batch_mode": False,
             "response_format": "N/A",
         }
-        if os.environ["CURATOR_VIEWER"] == "1":
-            self._curator_viewer_client = Client()
-            self._curator_session_id = self._curator_viewer_client.create_session(metadata_dict)
+        # if os.environ["CURATOR_VIEWER"] == "1":
+        #     self._curator_viewer_client = Client()
+        #     self._curator_session_id = self._curator_viewer_client.create_session(metadata_dict)
 
 
     def _generate_and_score_completions(
@@ -477,12 +477,12 @@ class GRPOEnvTrainer(GRPOTrainer):
         if self.state.global_step == 0 and mode == "eval":
             self._initial_eval = False
 
-        if os.environ["CURATOR_VIEWER"] == "1":
-            from bespokelabs.curator.utils import push_to_viewer
+        # if os.environ["CURATOR_VIEWER"] == "1":
+        #     from bespokelabs.curator.utils import push_to_viewer
 
-            df.drop(columns=["dataset_rows"], inplace=True)
-            dataset = Dataset.from_pandas(df)
-            push_to_viewer(dataset, session_id=self._curator_session_id)
+        #     df.drop(columns=["dataset_rows"], inplace=True)
+        #     dataset = Dataset.from_pandas(df)
+        #     push_to_viewer(dataset, session_id=self._curator_session_id)
     
     @profiling_decorator
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
