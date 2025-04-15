@@ -1,14 +1,11 @@
-# To reproduce our result, use the following command:
-# accelerate launch --config-file configs/zero3.yaml --num-processes 3 verifiers/examples/bfcl_agent.py
-
 import verifiers as vf
 import os 
 
 model_name = "Qwen/Qwen2.5-7B-Instruct"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
-TEST_RUN = True
-PRINT_SAMPLE_COMPLETIONS = False
+TEST_RUN = False
+PRINT_SAMPLE_COMPLETIONS = True
 NUM_GPUS = 4
 PER_DEVICE_BATCH_SIZE = 8
 # Rollouts per prompt
@@ -26,7 +23,7 @@ SAVE_STEPS = 100
 NUM_EPOCHS = 100
 USE_DR_GRPO = False
 USE_LATEST_TRL = False
-EVAL_ON_START = True
+EVAL_ON_START = False
 TEST_HYPOTHESIS = False
 if TEST_HYPOTHESIS:
     BASELINE_RUN = False
