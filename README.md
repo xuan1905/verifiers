@@ -1,7 +1,7 @@
 
 # Verifiers: Reinforcement Learning with LLMs in Verifiable Environments
 
-This repo is a fork of the [verifiers](https://github.com/willccbb/verifiers) repo. The development of this repo is using an older version of the verifiers repo. We will update this repo to use the latest version of the verifiers repo soon. 
+This repo is a fork of the [verifiers](https://github.com/willccbb/verifiers) repo. The development of this repo is using an older version of the verifiers repo. We will sync this fork with the latest version of the verifiers repo soon. 
 
 # Installation
 To install the dependencies, run the following commands:
