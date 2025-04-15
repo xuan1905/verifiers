@@ -90,6 +90,7 @@ class BfclEnv(MultiStepEnv):
         self.llm_parser = XMLParser(fields=["reasoning", "tool"])
         self.env_parser = XMLParser(fields=["tool_result"])
         self.use_latest_trl = use_latest_trl
+        self.message_end_id = 151645
 
     def get_dataset(self, max_num_turns: int = -1, **kwargs: Any) -> Dataset:
         if self.dataset is None:
@@ -153,28 +154,19 @@ class BfclEnv(MultiStepEnv):
         messages = state["messages"]
         step_count = self._get_step_count(messages, debug=debug)
         if step_count >= self.max_steps_per_turn:
-            # print(f"\nWARNING: Step count reached max steps per turn which is {self.max_steps_per_turn}, ending current entry\n")
-            # time.sleep(3)
             if debug:
                 print(f"Step count reached max steps per turn which is {self.max_steps_per_turn}")
                 time.sleep(3)
             return True
         
         # Check question bank empty and <TASK_FINISHED>, or <TASK_ERROR> in llm response
-        # if debug:
-        #     print(f"User Question Bank: {json.loads(state['dataset_row']['user_question_bank'])}")
-        #     time.sleep(3)
         user_question_bank = json.loads(state["dataset_row"]["user_question_bank"])
-        # if debug:
-        #     print(f"User Question Bank after json.loads: {user_question_bank}")
-        #     time.sleep(3)
         llm_response = messages[-1]["content"]
         # If reasoning is present then remove it, only check for TASK_ERROR in the solution part
         if "<reasoning>" in llm_response and "</reasoning>" in llm_response:
             llm_response = llm_response.split("</reasoning>")[1]
         if ((len(user_question_bank) == 0) and (self.current_turn_completed(state=state, debug=debug))) or (
             "TASK_ERROR" in llm_response) or ("task_error" in llm_response): 
-            # NOTE: Found responses like < TASK_ERROR > and not being able to stop properly
             if debug:
                 if "TASK_ERROR" in llm_response:
                     print(f"Found TASK_ERROR in response. Current Entry Completed")
@@ -200,10 +192,7 @@ class BfclEnv(MultiStepEnv):
             if debug:
                 print(f"Executing Ground Truth Tool Call")
                 time.sleep(3)
-            # return "Ground Truth Tool Call"
             try:
-                # Convert list of function calls to proper format
-                # tool_json = json.loads(tool_json)
                 if not isinstance(tool_json, list):
                     print(tool_json)
                     raise Exception("Error in ground truth tool execution is not expected!!")
@@ -245,21 +234,6 @@ class BfclEnv(MultiStepEnv):
                         print(tool_json)
                         print(func_call)
                         raise Exception(f"Error in ground truth tool execution is not expected!!")
-                # if debug:
-                #     print("Current Environment Attributes:")
-                #     for class_name, instance in state['environment'].items():
-                #         print(f"\n{class_name}:")
-                #         for attr_name, value in vars(instance).items():
-                #             if not attr_name.startswith('_'):
-                #                 print(f"  {attr_name}: {value}")
-
-                #     print("\nGround Truth Environment Attributes:")
-                #     for class_name, instance in state['ground_truth_environment'].items():
-                #         print(f"\n{class_name}:")
-                #         for attr_name, value in vars(instance).items():
-                #             if not attr_name.startswith('_'):
-                #                 print(f"  {attr_name}: {value}")
-                #     time.sleep(3)
                 return json.dumps(all_func_call_results), state
             except Exception as e:
                 print(tool_json)
@@ -308,7 +282,6 @@ class BfclEnv(MultiStepEnv):
                         break
                 
                 if not found_method:
-                    # print(f"Stored Environment Instances: {self.env_instances}")
                     available_tools = []
                     for class_name in state['dataset_row']['involved_classes']:
                         func_doc = load_file(INVOLVED_CLASS_TO_FUNC_DOC_PATH[class_name])
@@ -319,7 +292,6 @@ class BfclEnv(MultiStepEnv):
                         print(f"Involved Classes: {state['dataset_row']['involved_classes']}")
                         print(f"State Environment: {state['environment']}")
                         raise Exception(f"Error: Method '{tool_name}' found in involved classes but not found in any class instance. Available Tools: {available_tools}")
-                    # raise Exception(f"Error: Method '{tool_name}' found in involved classes but not found in any class instance. Available Tools: {available_tools}")
                     all_func_call_results.append(f"Function Call {tool_call} Failed. Error: Method '{tool_name}' not found in any class instance. Function calls after this will not be executed.")
                     return json.dumps(all_func_call_results), state
                 
@@ -333,7 +305,6 @@ class BfclEnv(MultiStepEnv):
                 # If function call succeeds but tool result is error 
                 # NOTE: This below gives false negatives: sometimes the function return result has the word "error" in it
                 # if "error" in str(result).lower():
-                # 
                 if "'error':" in str(result).lower():
                     all_func_call_results.append(f"Function Call {tool_call} Failed during execution. Error: {result}. Function calls after this will not be executed.")
                     return json.dumps(all_func_call_results), state
@@ -342,9 +313,6 @@ class BfclEnv(MultiStepEnv):
                 all_func_call_results.append(f"Function Call {tool_call} Succeeded. Result: {result}")
                 state['successful_func_calls'][-1].append(tool_call)
 
-            # if debug:
-            #     print(f"Successful Function Calls: {state['successful_func_calls']}")
-            #     time.sleep(3)
             return json.dumps(all_func_call_results), state
         except json.JSONDecodeError:
             all_func_call_results = []
@@ -389,7 +357,6 @@ class BfclEnv(MultiStepEnv):
              sampling_params: SamplingParams,
              debug: bool = False) -> List[Dict[str, Any]]:
         live_indices = [i for i, s in enumerate(states) if not s["completed"]]
-        # messages_to_step = [states[i]["multi_turn_history"] for i in live_indices]
         messages_to_step = [states[i]["messages"] for i in live_indices]
         # NOTE: llm_responses is a list of ChatCompletion (rollouts)
         if debug:   
@@ -397,39 +364,28 @@ class BfclEnv(MultiStepEnv):
                 print("--------------------------------New round of generation--------------------------------")
                 print(f"Latest Input Message to LLM: {messages_to_step[0][-2:] if len(messages_to_step[0]) >= 2 else messages_to_step[0]}")
                 time.sleep(3)
-        # NOTE: If TRL version is 0.16.0, use vllm_client.generate instead
+        # NOTE: If TRL version is 0.16.0, use vllm_client.generate instead (Under Construction)
         if self.use_latest_trl:
-            llm_responses = self.vllm_client.generate(
-                prompts=messages_to_step,
-                # n=self.num_generations,
-                repetition_penalty=self.repetition_penalty,
-                temperature=self.temperature,
-                top_p=self.top_p,
-                top_k=-1 if self.top_k is None else self.top_k,
-                min_p=0.0 if self.min_p is None else self.min_p,
-                max_tokens=self.max_completion_length,
-                guided_decoding_regex=self.guided_decoding_regex,
-            )
+            raise Exception("Doesn't Support TRL 0.16.0 yet")
+            # llm_responses = self.vllm_client.generate(
+            #     prompts=messages_to_step,
+            #     # n=self.num_generations,
+            #     repetition_penalty=self.repetition_penalty,
+            #     temperature=self.temperature,
+            #     top_p=self.top_p,
+            #     top_k=-1 if self.top_k is None else self.top_k,
+            #     min_p=0.0 if self.min_p is None else self.min_p,
+            #     max_tokens=self.max_completion_length,
+            #     guided_decoding_regex=self.guided_decoding_regex,
+            # )
         else:
             llm_responses = llm.chat(messages_to_step, sampling_params=sampling_params, use_tqdm=False) # type: ignore
 
-        # print("--------------------------------New round of generation--------------------------------")
-        # if 4 in live_indices:
-        #     print(f"User Question Bank: {json.loads(states[4]['dataset_row']['user_question_bank'])}")
-        #     print(f"LLM Response: {llm_responses[live_indices.index(4)].outputs[0].text}")
-        #     time.sleep(3)
-
-        # # Initialize or get environment instances for each state
-        # states = self._initialize_environments(states, live_indices)
         for i, j in enumerate(live_indices):
             if len(states[j]["prompt_ids"]) == 0:
                 states[j]["prompt_ids"] = llm_responses[i].prompt_token_ids
             llm_response = llm_responses[i].outputs[0].text
-            # print(f"llm_response: {llm_response}")
-            # print(f"Output Token IDs: {llm_responses[i].outputs[0].token_ids}")
-            # raise Exception("Stop here")
             if "<reasoning>" in llm_response and "</reasoning>" in llm_response:
-                # NOTE: Remove reasoning from llm_response for multi-turn generation
                 llm_response_without_reasoning = llm_response.split("</reasoning>")[1]
                 states[j]["multi_turn_history"].append({"role": "assistant", "content": llm_response_without_reasoning})
             else:
@@ -463,22 +419,11 @@ class BfclEnv(MultiStepEnv):
                 states[j]["completion_mask"] = states[j]["completion_mask"][:len(states[j]["completion_ids"])] # type: ignore
 
             if self.current_entry_completed(state=states[j], debug=(debug and j == 0)) or len(states[j]["completion_ids"]) > sampling_params.max_tokens - 1: # type: ignore
-                # if j == 0:
-                #     print(f"Entering current_entry_completed")
-                #     time.sleep(3)
                 states[j]["completed"] = True
                 states[j]["completion_ids"] = states[j]["completion_ids"][:sampling_params.max_tokens]
-                # NOTE: Modification to fix edge case
-                # states[j]["completion_mask"] = states[j]["completion_mask"][:sampling_params.max_tokens]
                 states[j]["completion_mask"] = states[j]["completion_mask"][:len(states[j]["completion_ids"])]
                 
-                # print(f"Conversation History: {'\n'.join([m['content'] for m in states[j]['messages']])}")
-                # print(f"Index: {j}")
-                # print(f"User Question Bank: {json.loads(states[j]['dataset_row']['user_question_bank'])}")
-                # print(f"Length of Completion IDs: {len(states[j]['completion_ids'])}")
-                # print(f"Length of Max Tokens: {sampling_params.max_tokens}")
-                # print(f"Ground Truth Bank before clearing: {json.loads(states[j]['dataset_row']['ground_truth_bank'])}")
-                # NOTE: Clearing up the ground truth answer bank
+                # Clearing up the ground truth answer bank
                 while len(json.loads(states[j]["dataset_row"]["ground_truth_bank"])) > 0:
                     if debug:
                         if j == 0:
@@ -490,22 +435,8 @@ class BfclEnv(MultiStepEnv):
                     _, states[j] = self.call_tool(ground_truth_answer, state=states[j], debug=(debug and (j == 0)), ground_truth=True)
                     if len(json.loads(states[j]["dataset_row"]["ground_truth_bank"])) > 0:
                         states[j]["successful_func_calls"].append([])
-                # if debug:
-                #     if j == 0:  
-                #         print(f"Length of successful_func_calls: {len(states[j]['successful_func_calls'])}")
-                #         print(f"Length of answer: {len(json.loads(states[j]['dataset_row']['answer']))}")
-                #         time.sleep(3)
-                # print(f"States: {states[j]}")
-                # print(f"Successful Function Calls: {states[j]['successful_func_calls']}")
-                # print(f"Answer: {json.loads(states[j]['dataset_row']['answer'])}")
-                # print(f"Length of successful_func_calls: {len(states[j]['successful_func_calls'])}")
-                # print(f"Length of answer: {len(json.loads(states[j]['dataset_row']['answer']))}")
-                # time.sleep(3)
                 assert len(states[j]["successful_func_calls"]) == len(json.loads(states[j]["dataset_row"]["answer"]))
             elif (self.current_turn_completed(state=states[j], debug=(debug and (j == 0)))):
-                # if j == 0:
-                #     print(f"Entering current_turn_completed")
-                #     time.sleep(3)
                 # This is when <TASK_FINISHED> is found, give the next user question from user question bank
                 # NOTE: user_question_bank is a list of lists
                 user_question_bank = json.loads(states[j]["dataset_row"]["user_question_bank"])
@@ -527,20 +458,7 @@ class BfclEnv(MultiStepEnv):
                         print(f"next_user_question: {next_user_question}")
                         time.sleep(3)
             else:
-                # if j == 0:
-                #     print(f"Entering env_response")
-                #     time.sleep(3)
-                # if debug:
-                #     if j == 0:
-                #         print(f"Entering env_response")
-                #         print(f"User Question Bank: {json.loads(states[0]['dataset_row']['user_question_bank'])}")
-                #         time.sleep(3)
                 env_response, states[j] = self.env_response(state=states[j], debug=(debug and (j == 0)))
-                # if debug:
-                #     if j == 0:
-                #         print(f"Finishing env_response")
-                #         print(f"User Question Bank: {json.loads(states[0]['dataset_row']['user_question_bank'])}")
-                #         time.sleep(3)
                 states[j]["messages"].append(env_response)
                 states[j]["multi_turn_history"].append(env_response)
                 if debug:
@@ -621,39 +539,6 @@ class BfclEnv(MultiStepEnv):
                 dataset_rows: List[Dict[str, Any]] = None,
                 debug: bool = False,
                 **kwargs: Any) -> Dict[str, List[Sequence[int]] | List[str] |  List[List[Dict[str, Any]]]]:
-        
-        # if dataset_rows:
-        #     self.dataset_rows = dataset_rows
-            # print("Entering generate")
-            # print(f"Original dataset_rows: {[x['id'] for x in dataset_rows]}")
-            # print(f"Process Index: {self.accelerator.process_index}")
-            # num_rollouts = len(prompts) / len(dataset_rows)
-            # assert num_rollouts.is_integer(), f"Expected integer number of rollouts, got {num_rollouts}"
-            # num_rollouts = int(num_rollouts)
-            # expanded_rows = []
-            # for row in dataset_rows:
-            #     expanded_rows.extend([copy.deepcopy(row)] * num_rollouts)
-            # dataset_rows = copy.deepcopy(expanded_rows)
-            # print(f"Length of dataset_rows: {len(dataset_rows)}")
-            # print(f"Length of prompts: {len(prompts)}")
-            # # print([prompt[-1]['content'] for prompt in prompts[:20]])
-            # time.sleep(3)
-            # assert len(prompts) == len(dataset_rows)
-            # # Verify that each group of num_rollouts entries corresponds to the same dataset row
-            # for i in range(0, len(dataset_rows), num_rollouts):
-            #     group = dataset_rows[i:i + num_rollouts]
-            #     assert all(row == group[0] for row in group), f"Dataset rows in group starting at index {i} are not identical"
-            #     # Also verify prompts match within each group
-            #     prompt_group = [p[-1]['content'] for p in prompts[i:i + num_rollouts]]
-            #     # print(f"prompt_group: {prompt_group}")
-            #     assert all(p == prompt_group[0] for p in prompt_group), f"Prompts in group starting at index {i} are not identical"
-
-        # Randomly inspect on a few rows of prompts and dataset_rows
-        # random_indices = random.sample(range(len(prompts)), 3)
-        # for i in range(len(prompts)):
-        #     print(f"Prompt: {prompts[i][-1]}")
-        #     print(f"Dataset Row: {json.loads(dataset_rows[i]['question'])[-1]}\n\n")
-        # raise Exception("Stop here")
 
         custom_sp = sampling_params.clone()
         for k, v in self.sampling_args.items():
@@ -677,14 +562,10 @@ class BfclEnv(MultiStepEnv):
             print(f"Number of Rollouts: {len(states)}")
             time.sleep(3)
         # main loop
-        # round = 0
         states = self._initialize_environments(states)
         while not all_completed:
-            # round += 1
-            # print(f"Round: {round}")
             states = self.step(states, llm, custom_sp, debug=debug)
             all_completed = all(state["completed"] for state in states)
-            # print(f"All completed: {all_completed}")
 
         completion_messages = [s["messages"][s["prompt_messages"]:] for s in states]
         completion_ids = [s["completion_ids"] for s in states]

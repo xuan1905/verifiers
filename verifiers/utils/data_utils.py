@@ -105,6 +105,7 @@ def format_bfcl_prompt(system_prompt: str | None = None, involved_classes: List[
     return messages
 
 def preprocess_bfcl_dataset(system_prompt: str | None = None, curriculum_learning: bool = False) -> Dataset:
+    # TODO: Change to local path
     multi_turn_base_data = load_file("/root/richard/test/verifiers/verifiers/berkeley-function-call-leaderboard/data/BFCL_v3_multi_turn_base.json")
     multi_turn_base_answer = load_file("/root/richard/test/verifiers/verifiers/berkeley-function-call-leaderboard/data/possible_answer/BFCL_v3_multi_turn_base.json")
 
@@ -122,7 +123,6 @@ def preprocess_bfcl_dataset(system_prompt: str | None = None, curriculum_learnin
         multi_turn_base_data[i]["initial_config"] = json.dumps(initial_config)
         multi_turn_base_data[i]["answer"] = json.dumps(ground_truth)
 
-    # print(f"Length of multi_turn_base_data: {len(multi_turn_base_data)}")
     if curriculum_learning:
         # Create curriculum data with copies for each turn
         curriculum_data = []
@@ -138,8 +138,6 @@ def preprocess_bfcl_dataset(system_prompt: str | None = None, curriculum_learnin
                 curriculum_entry["num_turns"] = j
                 curriculum_data.append(curriculum_entry)
         multi_turn_base_data = curriculum_data
-        # print(f"Length of curriculum_data: {len(curriculum_data)}")
-        # print(f"Length of multi_turn_base_data: {len(multi_turn_base_data)}")
     
     dataset = Dataset.from_list(multi_turn_base_data)
     dataset = dataset.map(lambda x: {
@@ -159,14 +157,10 @@ def preprocess_bfcl_dataset(system_prompt: str | None = None, curriculum_learnin
     # Get unique IDs and split those first
     unique_ids = sorted(list(set(dataset["id"])))
     train_ids, test_ids = train_test_split(unique_ids, test_size=0.5, random_state=42)
-    # print(f"Train IDs: {len(train_ids)}, Test IDs: {len(test_ids)}")
 
     # Filter dataset based on IDs
     train_dataset = dataset.filter(lambda x: x["id"] in train_ids)
     test_dataset = dataset.filter(lambda x: x["id"] in test_ids)
-    
-    # print(f"Length of train_dataset: {train_dataset}")
-    # print(f"Length of test_dataset: {test_dataset}")
     
     if curriculum_learning:
         # Sort both splits by num_turns while preserving randomization within same num_turns
@@ -190,9 +184,5 @@ def preprocess_bfcl_dataset(system_prompt: str | None = None, curriculum_learnin
 
     # assert train_dataset and test_dataset have non-overlapping ids
     assert len(set(train_dataset["id"]) & set(test_dataset["id"])) == 0, "Train and test datasets have overlapping ids"
-
-    # Upload dataset_dict to Hugging Face
-    # dataset_dict.push_to_hub("RZ412/bfcl-curriculum-learning", private=True)
-    # raise ValueError("Dataset uploaded to Hugging Face")
 
     return dataset_dict

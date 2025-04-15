@@ -1,19 +1,17 @@
+# To reproduce our result, use the following command:
+# accelerate launch --config-file configs/zero3.yaml --num-processes 3 verifiers/examples/bfcl_agent.py
+
 import verifiers as vf
-from verifiers.tools import calculator, mean
-from verifiers.prompts import CALCULATOR_FEW_SHOT
-import time
 import os 
 
-os.environ["CURATOR_VIEWER"] = "1"
-
-# from unsloth import FastLanguageModel
-# model_name = "Qwen/Qwen2.5-7B-Instruct"
-model_name = "Qwen/Qwen2.5-3B-Instruct"
-# model_name = "/root/richard/test/verifiers/outputs/bfcl-qwen2.5-7b-instruct-1-turns-dr-grpo-update-ref-model-no-format-score-new-prompt-with-gibberish-judge/checkpoint-700"
+model_name = "Qwen/Qwen2.5-7B-Instruct"
 model, tokenizer = vf.get_model_and_tokenizer(model_name)
 
+TEST_RUN = True
+PRINT_SAMPLE_COMPLETIONS = False
 NUM_GPUS = 4
 PER_DEVICE_BATCH_SIZE = 8
+# Rollouts per prompt
 NUM_GENERATIONS = 8
 # (NUM_GPUS - 1) * PER_DEVICE_BATCH_SIZE / NUM_GENERATIONS = NUM PROMPT PER DEVICE
 EVAL_DATASET_SIZE = 100
@@ -28,24 +26,30 @@ SAVE_STEPS = 100
 NUM_EPOCHS = 100
 USE_DR_GRPO = False
 USE_LATEST_TRL = False
-UPDATE_REF_MODEL = True
-EVAL_ON_START = False
+EVAL_ON_START = True
 TEST_HYPOTHESIS = False
 if TEST_HYPOTHESIS:
     BASELINE_RUN = False
 BETA = 0.001
+if BETA == 0:
+    UPDATE_REF_MODEL = False
+else:
+    UPDATE_REF_MODEL = True
 MAX_GRAD_NORM = 0.2
+# steps per global batch (1 on-policy, N-1 off-policy), mu in DeepSeekMath paper
 NUM_ITERATIONS = 2
+GRADIENT_ACCUMULATION_STEPS = 4
 APPLY_OVERLONG_FILTERING = True
-
-# if DEBUG_GENERATE or DEBUG_REWARDS:
-#     NUM_GPUS = 2
-#     MAX_STEPS_PER_TURN = 5
+MAX_COMPLETION_LENGTH = 2048
+PUSH_TO_VIEWER = False
+if PUSH_TO_VIEWER:
+    os.environ["CURATOR_VIEWER"] = "1"
+else:
+    os.environ["CURATOR_VIEWER"] = "0"
 
 # Initialize tool environment for GSM8K
 vf_env = vf.BfclEnv(
     dataset="bfcl",
-    # few_shot=CALCULATOR_FEW_SHOT[0],
     tools=[],
     max_num_turns=MAX_NUM_TURNS,
     max_steps_per_turn=MAX_STEPS_PER_TURN,
@@ -54,26 +58,12 @@ vf_env = vf.BfclEnv(
 )
 
 train_dataset = vf_env.get_dataset(max_num_turns=MAX_NUM_TURNS)
-# if TEST_HYPOTHESIS:
-#     question_subset_ids = ["multi_turn_base_" + str(i) for i in [69, 198, 1, 134, 194, 93, 6, 104, 145, 138, 163, 47]]
-#     train_dataset = train_dataset.filter(lambda x: x["id"] in question_subset_ids)
-#     print(set(train_dataset["id"]))
-#     assert len(set(train_dataset["id"])) == len(question_subset_ids), f"len(set(train_dataset['id'])): {len(set(train_dataset['id']))}, len(question_subset_ids): {len(question_subset_ids)}"
-eval_dataset = vf_env.get_eval_dataset(max_num_turns=MAX_NUM_TURNS, max_turn_only=MAX_TURNS_ONLY, 
-                                    #    n=EVAL_DATASET_SIZE
-                                       )
-# if TEST_HYPOTHESIS:
-#     eval_dataset = eval_dataset.select(range(0,10))
-# train_dataset = train_dataset.select(range(0,10))
-# eval_dataset = eval_dataset.select(range(0,20))
+eval_dataset = vf_env.get_eval_dataset(max_num_turns=MAX_NUM_TURNS, max_turn_only=MAX_TURNS_ONLY)
 print(train_dataset)
 print(eval_dataset)
-# raise Exception("Stop")
-# time.sleep(5)
 
 rubric = vf_env.get_rubric()
 
-# notable defaults: lr = 1e-6, max_grad_norm = 0.01, constant lr 10 warmup steps, 1024 tokens in+out
 run_name = "bfcl-" + model_name.split("/")[-1].lower() + f"-{MAX_NUM_TURNS}-turns"
 if USE_LATEST_TRL:
     run_name += "-latest-trl"
@@ -93,37 +83,25 @@ if TEST_HYPOTHESIS:
         run_name += "-clip-advantage-positive-only"
 if APPLY_OVERLONG_FILTERING:
     run_name += "-apply-overlong-filtering"
+if TEST_RUN:
+    run_name += "-test-run"
+run_name += f"-beta-{BETA}"
 
-
-    
-# run_name += "-with-gibberish-judge"
-# if DEBUG_GENERATE or DEBUG_REWARDS:
-#     run_name += "-debug"
-# run_name = "bfcl-3B-test-run"
 training_args = vf.get_default_grpo_config(
     run_name=run_name,
     num_gpus=NUM_GPUS
 )
 training_args.num_train_epochs = NUM_EPOCHS
-# rollouts per prompt
 training_args.num_generations = NUM_GENERATIONS
+training_args.max_completion_length = MAX_COMPLETION_LENGTH
 if DEBUG_GENERATE or DEBUG_REWARDS:
-    # training_args.num_generations = 2
     training_args.report_to = "none"
-# minibatch size per GPU ( bs 6 * 7 gpus / 7 rollouts -> 6 prompts per batch)
 training_args.per_device_train_batch_size = PER_DEVICE_BATCH_SIZE
-# batches to accumulate (6 prompts * 4 -> 24 prompts per global batch)
-training_args.gradient_accumulation_steps = 4
-# steps per global batch (1 on-policy, 1 off-policy)
-# NOTE: In TRL 0.15.2 this is not supported
+training_args.gradient_accumulation_steps = GRADIENT_ACCUMULATION_STEPS
 training_args.num_iterations = NUM_ITERATIONS
-# ref model configs
 training_args.beta = BETA
 training_args.max_grad_norm = MAX_GRAD_NORM
-# evals
 if TEST_HYPOTHESIS:
-    # training_args.eval_strategy = "no"
-    # training_args.eval_on_start = False
     training_args.eval_strategy = "steps"
     training_args.eval_on_start = EVAL_ON_START
     training_args.eval_steps = EVAL_STEPS
@@ -140,6 +118,10 @@ if UPDATE_REF_MODEL:
     training_args.sync_ref_model = True
     training_args.ref_model_mixup_alpha = 1.0
     training_args.ref_model_sync_steps = SAVE_STEPS
+if TEST_RUN:
+    training_args.report_to = "none"
+else:
+    training_args.report_to = "wandb"
 
 trainer = vf.GRPOEnvTrainer(
     model=model,
@@ -156,6 +138,7 @@ trainer = vf.GRPOEnvTrainer(
     use_dr_grpo=USE_DR_GRPO,
     test_hypothesis_clip_advantage=(TEST_HYPOTHESIS and not BASELINE_RUN),
     apply_overlong_filtering=APPLY_OVERLONG_FILTERING,
+    print_sample_completions=PRINT_SAMPLE_COMPLETIONS,
 )
 
 trainer.train() 
